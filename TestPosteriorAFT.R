@@ -1,0 +1,195 @@
+### A script which has a simple 2 D mixture Model and checks the validity of Algorithm8 of Neal
+
+rm(list = ls())
+#setwd('/home/bit/ashar/Dropbox/Code/DPmixturemodel/DPplusAFT')
+setwd("C:/Users/Oana-Ashar/Desktop/Dropbox/Code/DPmixturemodel/DPplusAFT")
+
+
+library(MASS)
+library(mixtools)
+library(matrixcalc)
+library(stats)
+library(Runuran)
+library(truncnorm)
+library(Matrix)
+library(MCMCpack)
+library(psych)
+library(VGAM)
+library(MixSim)
+library(statmod)
+library(flexclust)
+library(survcomp)
+library(mixAK)
+library(mclust)
+library(monomvn)
+## Generate Data
+
+N = 200
+
+## Number of Clusters
+F = 3
+
+## Distribution of the points within three clusters
+
+p.dist = c(0.3,0.4,0.3)
+
+## Total Number of features D
+
+D = 2
+
+
+prob.overlap = 0.01
+
+## Generating Data with overlap only with the relevant features
+A <- MixSim(MaxOmega = prob.overlap ,K = F, p = D, int =c(-1.5,1.5), lim = 1e08)
+
+
+data.mu = array(data = NA, dim =c(F,D))
+data.S = array(data = NA, dim =c(F,D,D))
+
+for( i in 1:F){
+  data.mu[i,1:D] <- A$Mu[i,1:D]
+  data.S[i,1:D,1:D] <- A$S[1:D,1:D,i]
+}
+
+## The relevant data is genereated first
+Y.rel.list <- list(0)
+for ( i in 1:F){
+  Y.rel.list[[i]] <- mvrnorm(n = as.integer(N * p.dist[i]), mu = data.mu[i,1:D], Sigma = data.S[i,1:D,1:D])
+}
+
+############################################### MAKING Y from the clusters data #####################
+Y <- c(0)
+for (i in 1:F){
+  Y <- rbind(Y, Y.rel.list[[i]])
+} 
+Y<- Y[-1,]
+
+############################################### True Labels for the points #############################
+c.true <- c(0)
+for ( i in 1:F){
+  c.true <- rbind(as.matrix(c.true) , as.matrix(c(rep(i, as.integer(N * p.dist[i])))))  
+}
+c.true <- as.factor(c.true[-1,])
+
+## VIZULIZATION ##############################################################
+
+plot(Y[,1], Y[,2], pch = 19,col = c.true)
+
+############################# PARAMETERS for GIBB's SAMPLING ######################################
+
+iter = 10000
+
+################################# GIBBS SAMPLING  ###################################################
+
+
+D = NCOL(Y)
+N = NROW(Y)
+K = 5*N
+
+## HYPER PRIORS
+## Hyper parameters of the DP
+shape.alpha <- 2
+rate.alpha <- 1
+## Hyperparameters for the GMM
+beta  = D+2
+ro = 0.5
+
+
+source('rchinese.R')
+alpha  = rgamma(1, shape = shape.alpha, rate = rate.alpha )
+c <-  rchinese(N,alpha)
+f <- table(factor(c, levels = 1:max(c)))
+
+## Empirical Bayes Estimate of the Hyperparameters
+epsilon = as.vector(apply(Y,2,mean))
+W = cov(Y)
+
+
+## Initialization of the parameters for Gaussian Mixture
+mu = matrix(data = NA, nrow = K, ncol = D)
+S = array(data = NA, dim =c(K,D,D))
+
+############# K-Means Initialization #######################################
+
+
+c <- 0
+mu = matrix(data = NA, nrow = K, ncol = D)
+S = array(data = NA, dim =c(K,D,D))
+
+G <- F
+k.data <- kmeans(Y,G)
+c <- k.data$cluster
+
+
+prior.numclust <- table(factor(c, levels = 1:K))
+prior.activeclass<- which(prior.numclust!=0)
+
+#Sparsity controlling hyperparameter of the BAYESIAN LASSO MODEL NEEDED TO TEST THE MODEL
+r =1
+si = 1.78
+sig2.dat =100
+
+source('priordraw.R')
+
+### The means are set using the k-means
+for ( i in 1:length(prior.activeclass)){
+  mu[prior.activeclass[i],1:D] <-  k.data$centers[i,1:D] 
+  S[prior.activeclass[i],1:D,1:D] <-  priordraw(beta, W, epsilon, ro, r, si,N,D, sig2.dat)$Sigma
+}
+
+randindexi <- adjustedRandIndex(c.true,as.factor(c))
+
+
+source('posteriorchineseAFT.R')
+source('posteriorGMMparametrs.R')
+
+cognate <- NA
+param <- NA
+paramtime <- NA
+lik <- c(0)
+randy <- c(0)
+#################### GIBB'S ITERATION  ###################################################
+
+for (o in 1:iter) {
+  
+  
+  ################## PARAMETERS OF THE DP Mixture Model ######################################################
+  ## Updating the parameters based on the observations 
+  param <- posteriorGMMparametrs(c,Y,mu,S, alpha,K, epsilon, W, beta, ro,N,D )
+  mu <- param$mean
+  S <- param$precision
+  
+  ################# INDICATOR VARIABLE ##################################################################
+  ## Updating the indicator variables and the parameters
+  source('posteriorAFTonlyGMM.R')
+  cognate <- posteriorAFTonlyGMM(c,Y,mu,S,alpha, K, epsilon, W, beta, ro,r, si,D ,N, sig2.dat)
+  c <- cognate$indicator
+  mu <- cognate$mean
+  S <- cognate$precision
+  
+  
+  ### Calculate Log-likelihood 'Lik'
+  disclass <- table(factor(c, levels = 1:K))
+  activeclass <- which(disclass!=0)
+  loglikelihood <- rep(0, length(activeclass))
+  for (j in 1:length(activeclass)) {
+    clust <- which(c==activeclass[j])
+    loglikelihood[j] <- 0
+    for ( l in 1:length(clust)) {
+      loglikelihood[j] <- loglikelihood[j] +  log(dMVN(x = as.vector(t(Y[clust[l],1:D])), mean = mu[activeclass[j],1:D],  Q = S[activeclass[j],1:D,1:D])) 
+      }
+  }
+    lik[o] <- sum(loglikelihood)
+  
+  ##################### Print SOME Statistics #####################################################
+  print(lik[o])
+  randy[o] <- adjustedRandIndex(c.true,as.factor(c))
+  print(randy[o])
+  print(o/iter)
+} 
+
+
+
+
+

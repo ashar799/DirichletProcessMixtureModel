@@ -1,0 +1,17 @@
+{
+    "contents" : "kmeansBlasso = function(Y,That, F,K, beta, W, epsilon, ro, r, si, N, D, sig2.dat, ) {\n  \n   source('priordraw.R')\n  G <- F\n  k.data <- kmeans(Y,G)\n  c <- k.data$cluster\n  \n  \n  prior.numclust <- table(factor(c, levels = 1:K))\n  prior.activeclass<- which(prior.numclust!=0)\n  \n  ### The means are set using the k-means\n  for ( i in 1:length(prior.activeclass)){\n    mu[prior.activeclass[i],1:D] <-  k.data$centers[i,1:D] \n    \n    S[prior.activeclass[i],1:D,1:D] <-  priordraw(beta, W, epsilon, ro, r, si,N,D, sig2.dat)$Sigma\n    \n    lclust <- which(c == prior.activeclass[i])\n    \n    reg.blas <- 0\n    \n    sum <- c(0)\n    \n    coeff <- 0\n    \n    Ytemp <-  matrix(NA, nrow = length(lclust), ncol = D)\n    \n    Ytemp <- scale(Y[lclust,1:D], center = TRUE, scale = TRUE)\n    \n    \n    ### Part where I use the MONOMVN PACKAGE\n    \n    Ttemp <- as.vector(That[lclust])\n    \n    ntemp <- length(lclust)\n      \n    reg.blas <- blasso(Ytemp, Ttemp, T = 300,thin =  50, RJ = TRUE, mprior = 0.10 ,normalize = TRUE, verb = 0)\n      \n    sum <- summary(reg.blas, burnin= 100)\n      \n    ## Selecting those features which are relevant\n    \n    coeff <- unlist(lapply(strsplit(sum$coef[3,], split = \":\"), function(x) as.numeric(unlist(x)[2])))\n      \n    beta0[prior.activeclass[1]] <- coeff[1]\n      \n    indexplusone <- D+1\n      \n    ind <- 2:indexplusone\n      \n    betahat[prior.activeclass[i], ] <- coeff[ind]\n      \n    ta <- unlist(lapply(strsplit(sum$tau2i[3,], split = \":\"), function(x) as.numeric(unlist(x)[2])))\n      \n    tau2[prior.activeclass[i],] <- ta\n      \n    sigma2[prior.activeclass[i]] <- sum$s2[3]\n      \n    lambda2[prior.activeclass[i]] <- sum$lambda2[3]\n    \n  }\n  \n  ## Deleting those values which are no longer relevant\n  g <- table(factor(c, levels = 1:K))\n  inactive <- which(g==0)\n  \n  for ( i in 1:length(inactive)){\n    mu[inactive[i],1:D]  <- NA \n    S[inactive[i],1:D,1:D]  <- NA  \n    beta0[inactive[i]] <- NA \n    sigma2[inactive[i]] <- NA\n    betahat[inactive[i],1:D] <- NA \n    lambda2[inactive[i]] <- NA\n    tau2[inactive[i], 1:D] <- NA\n  }\n  \n  \n  \n  list('c' = c, 'mu'=mu, 'beta0'=beta0, 'betahat'= betahat, 'sigma2' =sigma2, 'lambda2' = lambda2, 'tau2'= tau2, 'S' =S)  \n  \n}",
+    "created" : 1428336876039.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "674151032",
+    "id" : "BD19F95F",
+    "lastKnownWriteTime" : 1428357795,
+    "path" : "C:/Users/Oana-Ashar/Desktop/Dropbox/Code/DPmixturemodel/DPplusAFT/kmeansBlasso.R",
+    "project_path" : "kmeansBlasso.R",
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "source_on_save" : false,
+    "type" : "r_source"
+}

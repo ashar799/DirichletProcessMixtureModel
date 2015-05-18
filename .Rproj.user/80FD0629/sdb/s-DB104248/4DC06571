@@ -1,0 +1,17 @@
+{
+    "contents" : "priordraw = function(beta, W, epsilon, ro, r, si,N,D, sig2.dat) {\n\n  mut = matrix(data = NA, nrow = 1, ncol = D)\n  St = array(data = NA, dim =c(D,D))\n\n  tau2t = matrix(data = NA, nrow = 1, ncol = D)\n  betahatt = matrix(data = NA, nrow = 1, ncol = D)\n  sigma2t <- 0\n  beta0t <- 0\n  lambda2t <- 0\n  \n  St <- rWISHART(1, beta, solve((beta*W)))\n  mut <- as.matrix(rMVN(n=1, mean = epsilon, Q = ro*St)$x)\n  lambda2t <- rgamma(1,shape = r, rate = si)\n  for ( i in 1:D)  {\n  tau2t[1, i] <- rgamma(1, shape = 1, rate = lambda2t)\n  } \n  ## Approximating the Jeffery's prior by a Gamma distribution \n \n  sigma2t <- rinvgamma(1, shape = 1, scale = 1)\n  \n  \n  beta0t <- rnorm(1, 0, sd = sig2.dat)\n  ## \n  scaleof <- 0\n  \n  scaleof <- sqrt(abs(sigma2t/lambda2t))\n  \n  for ( i in 1 :D) {\n    \n    betahatt[1, i] <- urlaplace(1, location = 0, scale = scaleof) \n  }\n  \n  list('mu' = mut, 'Sigma' = St, 'beta0' = beta0t, 'sigma2' = sigma2t, 'betahat' = betahatt, 'lambda2'= lambda2t, 'tau2'= tau2t)\n  \n\n}",
+    "created" : 1428496626797.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3298586008",
+    "id" : "4DC06571",
+    "lastKnownWriteTime" : 1427813534,
+    "path" : "~/Dropbox/Code/DPmixturemodel/DPplusAFT/priordraw.R",
+    "project_path" : "priordraw.R",
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "source_on_save" : false,
+    "type" : "r_source"
+}

@@ -1,0 +1,16 @@
+{
+    "contents" : "kmeansinit = function(Y,time,F,K, beta, W, epsilon, ro, r, si, sig2.dat) {\n  \n  source('priordraw.R')\n  ### Setting Initial cluster assignments and cluster centres with k-means\n  D <- ncol(Y)\n  N <- nrow(Y)\n  grand.matrix <- cbind(Y, time)\n  # Let G be the potential number of cluster\n  G <- F\n  k.data <- kmeans(grand.matrix,G)\n  c <- k.data$cluster\n  \n  \n  prior.numclust <- table(factor(c, levels = 1:K))\n  prior.activeclass<- which(prior.numclust!=0)\n  \n  ### The means are set using the k-means\n  for ( i in 1:length(prior.activeclass)){\n    mu[prior.activeclass[i],1:D] <-  k.data$centers[i,1:D] \n \n    lclust <- which(c == prior.activeclass[i])\n    if (length(lclust) > D){\n      Ysc <- scale(Y[lclust,1:D], center = TRUE, scale =TRUE)\n      lm.data <- lm(time[lclust] ~ Ysc)\n      sigma2[prior.activeclass[i]] <-  var(lm.data$residuals)\n      ind <- D +1\n      betahat[prior.activeclass[i],] <-  lm.data$coefficients[2:ind]\n      beta0[prior.activeclass[i]] <-  mean(time[lclust])\n    }\n    else{\n      prior <- priordraw(beta, W, epsilon, ro, r, si,N,D, sig2.dat)\n      sigma2[prior.activeclass[i]] <- prior$sigma2\n      betahat[prior.activeclass[i],1:D] <- prior$betahat \n      beta0[prior.activeclass[i]] <-  mean(time[lclust])\n      }\n    \n    lambda2[prior.activeclass[i]] <- priordraw(beta, W, epsilon, ro, r, si,N,D, sig2.dat)$lambda2\n    tau2[prior.activeclass[i], 1:D] <-  priordraw(beta, W, epsilon, ro, r, si,N,D, sig2.dat)$tau2\n    S[prior.activeclass[i],1:D,1:D] <-  priordraw(beta, W, epsilon, ro, r, si,N,D, sig2.dat)$Sigma\n  }\n  \n ## Deleting those values which are no longer relevant\n g <- table(factor(c, levels = 1:K))\n inactive <- which(g==0)\n \n for ( i in 1:length(inactive)){\n   mu[inactive[i],1:D]  <- NA \n   S[inactive[i],1:D,1:D]  <- NA  \n   beta0[inactive[i]] <- NA \n   sigma2[inactive[i]] <- NA\n   betahat[inactive[i],1:D] <- NA \n   lambda2[inactive[i]] <- NA\n   tau2[inactive[i], 1:D] <- NA\n }\n \n \n  \nlist('c' = c, 'mu'=mu, 'beta0'=beta0, 'betahat'= betahat, 'sigma2' =sigma2, 'lambda2' = lambda2, 'tau2'= tau2, 'S' =S)  \n  \n}",
+    "created" : 1427728352058.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2810561199",
+    "id" : "847A7BC1",
+    "lastKnownWriteTime" : 1427735596,
+    "path" : "~/Dropbox/Code/DPmixturemodel/DPplusAFT/kmeansinit.R",
+    "project_path" : "kmeansinit.R",
+    "properties" : {
+    },
+    "source_on_save" : false,
+    "type" : "r_source"
+}

@@ -1,0 +1,16 @@
+{
+    "contents" : "posteriorGMMparametrs = function(c,Y,mu,S, alpha,K, epsilon, W, beta, ro, N, D) {\n  \n  numclust <- table(factor(c, levels = 1:K))\n  activeclust <- which(numclust!=0)\n  \n  for (j in 1:length(activeclust)) {\n    clust <- which(c==activeclust[j])\n    \n    if (length(clust)==1){\n      tempmean <- as.vector(Y[clust,1:D])\n      temp.number <- 1\n      tempmat2 <- ((ro* temp.number)/(ro + temp.number)) * ((tempmean - epsilon ) %o% (tempmean - epsilon))\n      Zi <- beta*W +  tempmat2\n      ## Posterior estimate for precision matrix\n      S[activeclust[j],1:D,1:D] <- rWISHART(1, (beta + temp.number), solve((Zi)))\n      ## Posterior estimate for the mean\n      mu[activeclust[j],1:D] <- rMVN(n=1, mean = (ro*epsilon + (temp.number)* tempmean )/(ro + temp.number ), Q = (ro+ temp.number)*S[activeclust[j],1:D,1:D])\n    }\n    \n    \n    else{\n      tempmatrix <- as.matrix(Y[clust,1:D])\n      tempmean <- apply(tempmatrix,2,mean)\n      ## Some temporary matrices for calcuating the posterior\n      ## The number of elements in the class\n      temp.number <- as.numeric(numclust[activeclust[j]])\n      tempmat1 <-  matrix(apply(as.matrix(apply(tempmatrix,1,function(x) (x -tempmean)%o% (x-tempmean))),1,sum), nrow=D,ncol=D)\n      tempmat2 <- ((ro* temp.number)/(ro + temp.number)) * ((tempmean - epsilon ) %o% (tempmean - epsilon))\n      Zi <- beta*W + tempmat1 + tempmat2\n      ## Posterior estimate for precision matrix\n      S[activeclust[j],1:D,1:D] <- rWISHART(1, (beta + temp.number), solve(Zi))\n      ## Posterior estimate for the mean\n      mu[activeclust[j],1:D] <- rMVN(n=1, mean = (ro*epsilon + (temp.number)* tempmean )/(ro + temp.number ), Q = (ro+ temp.number)*S[activeclust[j],1:D,1:D])\n    }\n  } \n  \nlist('mean' = mu,'precision' = S )\n}\n",
+    "created" : 1427795905238.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "452149474",
+    "id" : "41D8A856",
+    "lastKnownWriteTime" : 1427807730,
+    "path" : "~/Dropbox/Code/DPmixturemodel/DPplusAFT/posteriorGMMparametrs.R",
+    "project_path" : "posteriorGMMparametrs.R",
+    "properties" : {
+    },
+    "source_on_save" : false,
+    "type" : "r_source"
+}

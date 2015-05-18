@@ -1,0 +1,17 @@
+{
+    "contents" : "predicttime = function(c, Y, That, Time, beta0, betahat, sigma2 ) {\n\nYtemp <- matrix(NA, nrow = N, ncol = D)\nnumclust <- table(factor(c, levels = 1:K))\nactiveclass<- which(numclust!=0)\n\nprediction <- c(0)\n\n\nfor ( i in 1:length(activeclass)) {\n  \n  clust <- which(c == activeclass[i])\n  \n  Ytemp[clust,1:D] <- scale(Y[clust,1:D], center = TRUE, scale = TRUE)\n}\n\n    \n for ( h in 1:N){  \n   \n   if (Time[h,2]==0) {\n     prediction[h]<- rtruncnorm(1, a = Time[h,1], b = Inf, mean = beta0[c[h]] + betahat[c[h],1:D ] %*% Ytemp[h,1:D] , sd = sqrt(sigma2[c[h]]) )\n    \n  } else {\n    prediction[h] <- rnorm(1, mean = beta0[c[h]] + betahat[c[h],1:D ] %*% Ytemp[h,1:D], sd = sqrt(sigma2[c[h]]))\n}\n\n\n}\n\nlist('predicttime' = prediction) \n\n\n}\n",
+    "created" : 1429199145780.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2702394878",
+    "id" : "CC264B9A",
+    "lastKnownWriteTime" : 1428358359,
+    "path" : "~/Dropbox/Code/DPmixturemodel/DPplusAFT/predicttime.R",
+    "project_path" : "predicttime.R",
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "source_on_save" : false,
+    "type" : "r_source"
+}

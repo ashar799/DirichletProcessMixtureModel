@@ -1,0 +1,16 @@
+{
+    "contents" : "posterioralpha = function(c, N, alpha, shape.alpha, rate.alpha) {\n  \n  ## Calculate the number of Active clusters\n  ## Calculate the number of Active clusters\n  \n  g <- table(factor(c, levels = 1:K))\n  active <- which(g!=0)\n  Kplus <- length(active)\n  \n  \n  f = function(x, N = N, Kp = Kplus){\n    (Kp - 1.5)* log (x) + lgamma(x) - lgamma(N+x) - (0.5/(x))\n    \n  }\n  \n  fprima = function(x, N = N, Kp = Kplus){\n    (Kp - 1.5)* (1/x) + digamma(x) - digamma(N+x) + (0.5/ (x)^2)\n    \n  }\n  \n  ars(1, f, fprima, x = alpha , m =1, N = N, Kp = Kplus ) \n  \n\n}\n\n",
+    "created" : 1427730260297.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2542622548",
+    "id" : "724C82B",
+    "lastKnownWriteTime" : 1427730364,
+    "path" : "~/Dropbox/Code/DPmixturemodel/DPplusAFT/posterioralpha.R",
+    "project_path" : "posterioralpha.R",
+    "properties" : {
+    },
+    "source_on_save" : false,
+    "type" : "r_source"
+}

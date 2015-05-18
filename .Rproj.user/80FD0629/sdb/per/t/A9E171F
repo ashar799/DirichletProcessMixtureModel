@@ -1,0 +1,17 @@
+{
+    "contents" : "priorparameter = function(c, K, beta, W, epsilon, ro, r, si,N,D, sig2.dat) {\n\nsource('priordraw.R')\ndisclass <- table(factor(c, levels = 1:K))\nactiveclass <- which(disclass!=0)\n\n## Initialization of the parameters for Gaussian Mixture\nmu = matrix(data = NA, nrow = K, ncol = D)\nS = array(data = NA, dim =c(K,D,D))\nlambda2 <- numeric(K)\ntau2 = matrix(data = NA, nrow = K, ncol = D)\nbetahat = matrix(data = NA, nrow = K, ncol = D)\nsigma2 <- rep(NA, K)\nbeta0 <- rep(NA, K)\nThat <-  numeric(N)\n\n\n\n\nfor ( j in 1:length(activeclass)){\n  \n  priorone <- priordraw(beta, W, epsilon, ro, r, si,N,D, sig2.dat)  \n  mu[activeclass[j],1:D] <- priorone$mu \n  S[activeclass[j],1:D,1:D]  <- priorone$Sigma  \n  beta0[activeclass[j]] <- priorone$beta0 \n  sigma2[activeclass[j]] <- priorone$sigma2\n  betahat[activeclass[j],1:D] <- priorone$betahat \n  lambda2[activeclass[j]] <- priorone$lambda2 \n  tau2[activeclass[j], 1:D] <- priorone$tau2\n}\n\n\nlist('mu' = mu, 'Sigma' = S, 'beta0' = beta0,'sigma2' = sigma2, 'betahat' = betahat, 'lambda2'= lambda2, 'tau2' = tau2 )\n\n}\n",
+    "created" : 1427728618819.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "4179317319",
+    "id" : "A9E171F",
+    "lastKnownWriteTime" : 1427812744,
+    "path" : "~/Dropbox/Code/DPmixturemodel/DPplusAFT/priorparameter.R",
+    "project_path" : "priorparameter.R",
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "source_on_save" : false,
+    "type" : "r_source"
+}

@@ -1,0 +1,17 @@
+{
+    "contents" : "updatetime = function(c, Y, Time,That, beta0, betahat, sigma2 ) {\n  \n  Ytemp <- matrix(NA, nrow = N, ncol = D)\n  numclust <- table(factor(c, levels = 1:K))\n  activeclass<- which(numclust!=0)\n  \n  \n  ## Updating the Estimated Survival Time\n  for ( h in 1:N) {\n    \n    if (Time[h,2]==0) {\n      \n      ## The columns of Y have to be centred\n      clust <- which(c == c[h])\n      \n      if (length(clust)==1){\n        for ( k in 1:D){\n          Ytemp[h,k] <- 0\n        }\n        \n      } else { tempmatrix <- Y[clust,1:D]\n               for ( k in 1:D){\n                 Ytemp[h,k] <- Y[h,k] - mean(tempmatrix[,k])\n               }\n      }\n      \n      \n      \n      \n      That[h]<- rtruncnorm(1, a = Time[h,1], b = Inf, mean = beta0[c[h]] + betahat[c[h],1:D ] %*% Ytemp[h,1:D] , sd = sqrt(sigma2[c[h]]) )\n      \n    } else {\n      That[h] <- Time[h,1] }\n  }\n  \n  list('time' = That) \n  \n  \n  \n}\n",
+    "created" : 1427729469892.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "971039992",
+    "id" : "352A80A4",
+    "lastKnownWriteTime" : 1427729828,
+    "path" : "~/Dropbox/Code/DPmixturemodel/DPplusAFT/updatetime.R",
+    "project_path" : "updatetime.R",
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "source_on_save" : false,
+    "type" : "r_source"
+}

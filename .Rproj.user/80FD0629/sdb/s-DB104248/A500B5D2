@@ -1,0 +1,16 @@
+{
+    "contents" : "calcindex = function(c, Time, time.predicted ) {\n  numclust <- table(factor(c, levels = 1:K))\n  activeclust <- which(numclust!=0)\n\n  cis <- c(0)\n  \n  for (j in 1:length(activeclust)) {\n    clust <- which(c==activeclust[j])\n    ob.surv <- Surv(as.vector(time.predicted[clust]), Time[clust,2])\n    km <- survfit(ob.surv~1)\n    survest <- stepfun(km$time, c(1, km$surv))\n    predicted.survival <- survest(time.predicted[clust])\n    cis[j] <- concordance.index(x = predicted.survival, surv.time = Time[clust,1], surv.event= Time[clust,2])$c.index \n    }\n\n  \n  list('cindex' = cis)\n}\n",
+    "created" : 1429185122690.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "847493022",
+    "id" : "A500B5D2",
+    "lastKnownWriteTime" : 1429199340,
+    "path" : "~/Dropbox/Code/DPmixturemodel/DPplusAFT/calcindex.R",
+    "project_path" : "calcindex.R",
+    "properties" : {
+    },
+    "source_on_save" : false,
+    "type" : "r_source"
+}
