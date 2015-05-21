@@ -9,8 +9,26 @@ priordraw = function(beta, W, epsilon, ro, r, si,N,D, sig2.dat) {
   beta0t <- 0
   lambda2t <- 0
   
-  St <- rWISHART(1, beta, solve((beta*W)))
-  mut <- as.matrix(rMVN(n=1, mean = epsilon, Q = ro*St)$x)
+  
+  res <- try(rWISHART(1, beta, solve((beta*W))), silent=TRUE)
+  if (class(res) == "try-error"){
+    St <- solve(W)
+  } else{
+    St <- rWISHART(1, beta, solve((beta*W)))
+  }
+  
+  
+  res2 <- try(as.matrix(rMVN(n=1, mean = epsilon, Q = ro*St)$x), silent = TRUE)
+  if (class(res2) == "try-error"){
+    mut <- epsilon
+  } else{
+    mut <- as.matrix(rMVN(n=1, mean = epsilon, Q = ro*St)$x)
+  }
+  
+  
+  
+  
+  
   lambda2t <- rgamma(1,shape = r, rate = si)
   for ( i in 1:D)  {
   tau2t[1, i] <- rgamma(1, shape = 1, rate = lambda2t)
