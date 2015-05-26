@@ -4,8 +4,10 @@
 rm(list = ls())
 load('/home/bit/ashar/ExpressionSets/Verhark/30pathwayVerhaark.RData')
 load('/home/bit/ashar/ExpressionSets/Verhark/phenoVerhaark.RData')
-
 setwd('/home/bit/ashar/Dropbox/Code/DPmixturemodel/DPplusAFT')
+
+### Load Results from the Last time
+##load('/home/bit/ashar/ExpressionSets/Verhark/Verhark.RData')
 
 library(MASS)
 library(mixtools)
@@ -121,11 +123,12 @@ That <- ti$time
 # calcrmse(time.real,That)$rmse
 F = 4
 
+surv.ob <- Surv(time,censoring)
 
 ## Initialization part for the parmaters of AFT Model with k-means and Bayesian Lasso
 source('kmeansBlasso.R')
 km <- kmeansBlasso(Y,That, F,K, beta, W, epsilon, ro, r, si, N, D, sig2.dat, c, mu, S, beta0, betahat, sigma2, lambda2, tau2)
-c <- km$c
+c.init <- km$c
 mu <- km$mu
 S <- km$S
 sigma2 <- km$sigma2
@@ -135,10 +138,19 @@ lambda2 <- km$lambda2
 tau2 <- km$tau2
 
 ### Checking the Plot with new Clustering
-plot(pc.pred[,1], pc.pred[,2], pch = 19,col = c)
+plot(pc.pred[,1], pc.pred[,2], pch = 19,col = c.init)
 ## Checking the rand index
-adjustedRandIndex(c.true,as.factor(c))
+adjustedRandIndex(c.true,as.factor(c.init))
 ## So only 0.45 matching
+
+## Checking the significance of the different time curves and silhouette indices
+dis <- dist(Y)
+si <- silhouette(c.init,dis)
+## Checking the average silhouette index
+unlist(summary(si))$avg.width
+logrank <- survdiff(surv.ob ~ c.init)
+## Checkingthe P-value
+1 - pchisq(unlist(logrank)$chisq, df=3)
 
 
 # Testing the  k-means estimate
@@ -384,7 +396,7 @@ dev.off()
 
 
 
-surv.ob <- Surv(Time[,1],Time[,2])
+
 surv.fit <- survfit(surv.ob ~ c.final)
 logrank <- survdiff(surv.ob ~ c.final)
 
