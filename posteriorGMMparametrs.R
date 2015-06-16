@@ -9,7 +9,7 @@ posteriorGMMparametrs = function(c,Y,mu,S, alpha,K, epsilon, W, beta, ro, N, D) 
     if (length(clust)==1){
       tempmean <- as.vector(Y[clust,1:D])
       temp.number <- 1
-      tempmat2 <- ((ro* temp.number)/(ro + temp.number)) * ((tempmean - epsilon ) %o% (tempmean - epsilon))
+      tempmat2 <- ((ro* temp.number)/(ro + temp.number)) * (as.numeric(tempmean - epsilon ) %o% as.numeric(tempmean - epsilon))
       Zi <- beta*W +  tempmat2
       ## Posterior estimate for precision matrix
       res <- try(rWISHART(1, (beta + temp.number), solve(Zi)), silent=TRUE)

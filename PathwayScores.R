@@ -129,7 +129,7 @@ colnames(data.combined) <- pathway.names
 ############ A Small Vizualization ###################
 pc <- prcomp(data.combined)
 pc.pred <- predict(pc,newdata = data.combined)
-pdf("VizVerhaarkData.pdf")
+pdf("VizVerhaarkDataPCA.pdf")
 plot(pc.pred[,1], pc.pred[,2], pch = 19, col = pheno[,4])
 dev.off()
 

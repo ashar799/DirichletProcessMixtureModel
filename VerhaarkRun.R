@@ -129,6 +129,7 @@ surv.ob <- Surv(time,censoring)
 source('kmeansBlasso.R')
 km <- kmeansBlasso(Y,That, F,K, beta, W, epsilon, ro, r, si, N, D, sig2.dat, c, mu, S, beta0, betahat, sigma2, lambda2, tau2)
 c.init <- km$c
+c <- c.init
 mu <- km$mu
 S <- km$S
 sigma2 <- km$sigma2
@@ -145,9 +146,9 @@ adjustedRandIndex(c.true,as.factor(c.init))
 
 ## Checking the significance of the different time curves and silhouette indices
 dis <- dist(Y)
-si <- silhouette(c.init,dis)
+sil <- silhouette(c.init,dis)
 ## Checking the average silhouette index
-unlist(summary(si))$avg.width
+unlist(summary(sil))$avg.width
 logrank <- survdiff(surv.ob ~ c.init)
 ## Checkingthe P-value
 1 - pchisq(unlist(logrank)$chisq, df=3)
@@ -180,6 +181,8 @@ cindex <- c(0)
 print(loglikelihood(c,Y,mu,S,alpha,That, beta0, betahat, sigma2, lambda2, tau2, K, epsilon, W, beta, ro,D, r, si, Time,N, sig2.dat) )
 randy <- c(0)
 likli <- c(0)
+sili <- c(0)
+plogi <- c(0)
 
 #################### BURNIN PHASE ###################################################
 print("BURNIN...PHASE")
@@ -242,6 +245,16 @@ for (o in o.initi:iter.burnin) {
   print(randy[o])
   likli[o] <- loglikelihood(c,Y,mu,S,alpha,That, beta0, betahat, sigma2, lambda2, tau2, K, epsilon, W, beta, ro,D, r, si, Time,N, sig2.dat)
   print(likli[o])
+  ## silhouette index
+  ## Checking the average silhouette index
+  sili[o] <- unlist(summary(silhouette(c,dis)))$avg.width
+  print(sili[o])
+  ## Checkingthe P-value
+  numclust <- table(factor(c, levels = 1:K))
+  activeclust <- which(numclust!=0)
+  deg <- length(activeclust) -1
+  plogi[o] <- 1 - pchisq(unlist(survdiff(surv.ob ~ c))$chisq, df=deg)
+  print(plogi[o])
   print(o/iter.burnin)
 } 
 

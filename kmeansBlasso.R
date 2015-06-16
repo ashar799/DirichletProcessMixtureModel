@@ -34,7 +34,7 @@ kmeansBlasso = function(Y,That, F,K, beta, W, epsilon, ro, r, si, N, D, sig2.dat
     
     ntemp <- length(lclust)
       
-    reg.blas <- blasso(Ytemp, Ttemp, T = 300,thin =  50, RJ = TRUE, mprior = 0.10 ,normalize = TRUE, verb = 0)
+    reg.blas <- blasso(Ytemp, Ttemp, T = 300,thin =  50, RJ = TRUE, mprior = 0.0 ,normalize = TRUE, verb = 0)
       
     sum <- summary(reg.blas, burnin= 100)
       

@@ -151,3 +151,4 @@ plot(pc.pred[,1], pc.pred[,2], pch = 19, col = pheno[,4])
 dev.off()
 
 save(data.combined,file = '30pathwayVerhaark.RData')
+save(pheno, file = 'phenoVerhaark.RData')

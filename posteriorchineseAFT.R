@@ -57,11 +57,19 @@ posteriorchineseAFT = function(c,Y,mu,S,alpha,That, beta0, betahat, sigma2, lamb
       
     } else {
       
+      
+      
       ## We have to deal with centred matrices
-      clust <- which(ctemp == temp)
+      clust <- which(c == temp)
       tempmatrix <- Y[clust,1:D]
       sd.tempmatrix <- apply(tempmatrix, 2, function(x) sd(x))
       mean.tempmatrix <- apply(tempmatrix, 2, mean)
+      
+      for ( k in 1:D){
+       if (sd.tempmatrix[k] == 0){
+         sd.tempmatrix[k] = 1
+       }
+      }
       
       for ( k in 1:D){
         Ytemp[l,k] <- (Y[l,k] - mean.tempmatrix[k])/(sd.tempmatrix[k])
