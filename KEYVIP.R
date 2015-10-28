@@ -1,13 +1,124 @@
-### Script to test if the model works with the Verhaak Data
+##### This script CLUSTERS Periphery Cells ON THE PvsZ signature and PFS survival  ####################
+library('xlsx')
+library('limma')
+rm(list =ls())
+setwd("/home/abidata/Dinis/VIP/signatureANNO")
+
+## load data ##
+
+load('/home/abidata/Dinis/VIP/signatureANNO/Data/ExpressionConsole.normalised.RData')
+
+## The phenoData
+tab <- read.xlsx(file  = '/home/abidata/Dinis/VIP/Sample_info/14-12-16 Samples for classifier.xlsx', sheetIndex =1)
+
+list.patients <- tab[2:186,4]
 
 
-rm(list = ls())
-load('/home/bit/ashar/ExpressionSets/Verhark/30pathwayVerhaark.RData')
-load('/home/bit/ashar/ExpressionSets/Verhark/phenoVerhaark.RData')
-setwd('/home/bit/ashar/Dropbox/Code/DPmixturemodel/DPplusAFT')
+## Include ONLY those features that have correspoding annotation ~ 27148 out of 70000
+## Include ONLY those Samples which are needed for classification 
 
-### Load Results from the Last time
-##load('/home/bit/ashar/ExpressionSets/Verhark/Verhark.RData')
+exprs <- eset.ec.norm[featureNames(eset.ec.norm) %in% rownames(anno.GENENAME),sampleNames(eset.ec.norm) %in% list.patients]
+
+
+##########################################################################################
+######## SIGNATURE ####################################################################
+##########################################################################################
+
+
+## LIMMA PREFILTERING #################################################
+
+pheno  <- pData(exprs) 
+
+pheno$Case <- as.factor(as.matrix(pheno$Case))
+pheno$Topo <- as.factor(as.matrix(pheno$Topo))
+pheno$Class <- as.factor(as.matrix(pheno$Class))
+
+
+mm <- model.matrix( ~ 0 + Topo + Case  + Class , pheno)
+
+cc <- colnames(mm)
+
+cc <-  gsub("_","", cc)
+
+cc <- gsub("-","", cc)
+
+colnames(mm) <- cc
+
+cont.matrix <- makeContrasts(ZvsP = Topocenter - Topoperiphery, levels= mm)
+
+fit <- lmFit(exprs, design = mm)
+fit2 <- contrasts.fit(fit, cont.matrix)
+fit3 <- eBayes(fit2)
+
+DEG_table <- topTable(fit3, adjust="BH", coef='ZvsP', number = Inf)
+
+## Only Those genes which have a high FC 1.4 and significance
+
+
+list <-  rownames(DEG_table)[abs(DEG_table$logFC) > 1.2 & DEG_table$adj.P.Val < 0.01]
+##############################################################################################
+###############################################################################################
+###### OUR SIGNATURE ###########################################################################
+
+signature <- list
+
+library('survival')
+library('stats')
+
+
+## load Phenodata ######
+phen <- read.csv(file = '/home/abidata/Dinis/VIP/Sample_info/15-02-10 VIP Sample Collection Data_v4.3.csv', sep = ",", quote = '\"', header = TRUE)
+
+
+### Getting those samples which are periphery
+pheno.per <- phen[(phen$Topo == "periphery") & (!is.na(phen$Topo)),]
+
+######################################################################################################
+################# PROGRESSION FREE SURVIVAL ##########################################################
+######################################################################################################
+
+
+
+### Only those patients who have a NON NA is PFS
+
+pheno.ready <- pheno.per[!is.na(pheno.per$PFS),]
+
+
+
+
+
+### Load conversion matrix
+anno <- read.csv('Data/final.ANNO.v34.csv', sep = ',')
+
+#########################################################################################
+########################################################################################
+### EVEN THOUGH AFFYIDS MAY HAVE SOME ANNOTATIONS, 
+### signature 
+sig.anno <- anno[anno$ENTREZ.ID  %in% signature,]    
+
+## Defining the data set
+Xsig <- exprs(eset.ec.norm[featureNames(eset.ec.norm) %in% (sig.anno[,1]),])
+
+### Making the data matrices ready for the COX PH
+Xsig.ready <- subset(t(Xsig), subset = rownames(t(Xsig)) %in% pheno.ready$USI)
+
+
+## Order the rows in the phenodata and the expression to be the same
+ind1 <- match(rownames(Xsig.ready), pheno.ready$USI)
+
+pheno.sig <- pheno.ready[ind1,]
+
+## JUST CHECKING
+pheno.sig$USI == rownames(Xsig.ready)
+
+
+######## Getting survival times (PFS) and status #####################
+
+time <- as.numeric(as.matrix(pheno.sig$PFS))
+censoring <- 1- pheno.sig$Alive.
+
+
+##### Applying the MODEL on CLUSTERING #####################################
 
 library(MASS)
 library(mixtools)
@@ -22,35 +133,33 @@ library(VGAM)
 library(MixSim)
 library(statmod)
 library(flexclust)
-library(survcomp)
 library(mixAK)
 library(mclust)
 library(monomvn)
 
-
-Y <- data.combined
-time <- pheno[,3]
-censoring <- pheno[,2]
-kruskal.test(time, pheno[,4])
-c.true <- pheno[,4]
-## p-value 0.851 This means that survival times are not significantly different YEEEEY!!!!
-
-
+###### Just Doing some changes to the data ##########################################3
+time <- log(time*30)
+Y <- Xsig.ready
+index.inf <- which(time == -Inf)
+time <- time[-index.inf]
+Y <- Y[-index.inf,]
+censoring <- censoring[-index.inf]
+That <- time
 ## Let's See if the Clusters are separate on PCA
 
 ## All features but uncorrelated data
 pc <- prcomp(Y)
 pc.pred <- predict(pc,newdata = Y)
-plot(pc.pred[,1], pc.pred[,2], pch = 19,col = c.true)
+plot(pc.pred[,1], pc.pred[,2], pch = 19)
+
+
 
 ############################# PARAMETERS for GIBB's SAMPLING ######################################
-
-iter = 10000
-iter.burnin = 1000
+iter.burnin = 100
 iter.thin  =5
 
 ################################# GIBBS SAMPLING  ###################################################
-
+Time <- c(0)
 Time <- cbind(time, censoring) 
 D = NCOL(Y)
 N = NROW(Y)
@@ -64,7 +173,7 @@ rate.alpha <- 1
 beta  = D+2
 ro = 0.5
 
-
+setwd('/home/bit/ashar/Dropbox/Code/DPmixturemodel/DPplusAFT')
 source('rchinese.R')
 alpha  = rgamma(1, shape = shape.alpha, rate = rate.alpha )
 c <-  rchinese(N,alpha)
@@ -98,7 +207,6 @@ sig2.dat <-  var(lm.data$residuals)
 
 
 ## Set Some Initial Values for the Cluster Parameters
-
 source('priordraw.R')
 disclass <- table(factor(c, levels = 1:K))
 activeclass <- which(disclass!=0)
@@ -121,9 +229,9 @@ That <- ti$time
 
 # ## Check What is the RMSE
 # calcrmse(time.real,That)$rmse
-F = 4
+F = 2
 
-surv.ob <- Surv(time,censoring)
+surv.ob <- Surv(exp(time),censoring)
 
 ## Initialization part for the parmaters of AFT Model with k-means and Bayesian Lasso
 source('kmeansBlasso.R')
@@ -140,18 +248,16 @@ tau2 <- km$tau2
 
 ### Checking the Plot with new Clustering
 plot(pc.pred[,1], pc.pred[,2], pch = 19,col = c.init)
-## Checking the rand index
-adjustedRandIndex(c.true,as.factor(c.init))
-## So only 0.45 matching
 
+library(cluster)
 ## Checking the significance of the different time curves and silhouette indices
 dis <- dist(Y)
 sil <- silhouette(c.init,dis)
 ## Checking the average silhouette index
-unlist(summary(sil))$avg.width
+sil.width0 <- unlist(summary(sil))$avg.width
 logrank <- survdiff(surv.ob ~ c.init)
 ## Checkingthe P-value
-1 - pchisq(unlist(logrank)$chisq, df=3)
+logrank0 <- 1 - pchisq(unlist(logrank)$chisq, df=F-1)
 
 
 # Testing the  k-means estimate
@@ -173,17 +279,15 @@ source('likelihood.R')
 cognate <- NA
 param <- NA
 paramtime <- NA
-loglike<- rep(0, iter)  
+
 timeparam <- NA
 time.predicted <- c(0)
-cindex <- c(0)
 
-print(loglikelihood(c,Y,mu,S,alpha,That, beta0, betahat, sigma2, lambda2, tau2, K, epsilon, W, beta, ro,D, r, si, Time,N, sig2.dat) )
-randy <- c(0)
-likli <- c(0)
+
+likli0 <- print(loglikelihood(c,Y,mu,S,alpha,That, beta0, betahat, sigma2, lambda2, tau2, K, epsilon, W, beta, ro,D, r, si, Time,N, sig2.dat) )
 sili <- c(0)
 plogi <- c(0)
-
+o.initi <- o
 #################### BURNIN PHASE ###################################################
 print("BURNIN...PHASE")
 for (o in o.initi:iter.burnin) {
@@ -222,15 +326,9 @@ for (o in o.initi:iter.burnin) {
   tau2 <- cognate$tau2
   
   ########################### The Concentration Parameter #################################################################
-  
-  
-  #source('posterioralpha.R') 
-  ## Updating the concentration parameter
-  # alpha <- posterioralpha(c, N, alpha, shape.alpha, rate.alpha)
-  
-  
-  
-  
+  source('posterioralpha.R') 
+  # Updating the concentration parameter
+  alpha <- posterioralpha(c, N, alpha, shape.alpha, rate.alpha)
   
   ######################## The Censored Times ###########################################################
   source('updatetime.R')
@@ -241,9 +339,7 @@ for (o in o.initi:iter.burnin) {
   
   
   ##################### Print SOME Statistics #####################################################
-  randy[o] <- adjustedRandIndex(c.true,as.factor(c))
-  print(randy[o])
-  likli[o] <- loglikelihood(c,Y,mu,S,alpha,That, beta0, betahat, sigma2, lambda2, tau2, K, epsilon, W, beta, ro,D, r, si, Time,N, sig2.dat)
+ likli[o] <- loglikelihood(c,Y,mu,S,alpha,That, beta0, betahat, sigma2, lambda2, tau2, K, epsilon, W, beta, ro,D, r, si, Time,N, sig2.dat)
   print(likli[o])
   ## silhouette index
   ## Checking the average silhouette index
@@ -257,17 +353,6 @@ for (o in o.initi:iter.burnin) {
   print(plogi[o])
   print(o/iter.burnin)
 } 
-
-############## GIBBS SAMPLING WITH THINNING ######################################################
-
-mu.list <- list(0)
-beta0.list <- list(0)
-betahat.list <- list(0) 
-sigma2.list <- list(0)
-lambda2.list <- list(0)
-tau2.list <- list(0)
-c.list <- list(0)
-That.list <- list(0)
 
 ############## GIBBS SAMPLING WITH THINNING ######################################################
 iter =100
@@ -339,7 +424,7 @@ for (o in 1:iter) {
   
   
   
-  
+ 
   #   ## Value of the Log-likelihood
   source('likelihood.R')
   loglike[o] <-loglikelihood(c,Y,mu,S,alpha,That, beta0, betahat, sigma2, lambda2, tau2, K, epsilon, W, beta, ro,D, r, si, Time,N, sig2.dat) 
@@ -379,58 +464,25 @@ c.final <- apply(c.matrix,1,median)
 surv.fit <- survfit(surv.ob ~ c.final)
 logrank <- survdiff(surv.ob ~ c.final)
 
-
 #### SURVIVAL OBJECTS BASED ON DAYS ########################################
 
-surv.days <- Surv(exp(time),censoring)
+surv.days <- Surv((30.5*time),censoring)
 surv.days.fit <- survfit(surv.days ~ c.final)
 surv.days.logrank <- survdiff(surv.days ~ c.final)
 
-ver.surv.days.fit <- survfit(surv.days ~ c.true)
-ver.surv.days.logrank <- survdiff(surv.days ~ c.true)
 
-
-## Calculate Plots for our Clustering
-pdf('/home/bit/ashar/KaplanMeierVerhaakDPMODEL.pdf')
-plot(surv.days.fit, col =c("red","blue","green","black"), xlab = "Days")
-title("Kaplan-Meier Curves\n with clusters \n from our DP model ")
-leg.text <- c("LogRank Test p-value of 0.129")
-legend("topright", leg.text)
-dev.off()
-
-pdf('/home/bit/ashar/MolecularVerhaakOURCLUSTERING.pdf')
-pc <- prcomp(Y)
-pc.pred <- predict(pc,newdata = Y)
-plot(pc.pred[,1], pc.pred[,2], pch = 19,col = c.final)
-title("PCA plot for Verhaak Data \n from our DP model \n with Pathway features")
-dev.off()
-
-pdf('/home/bit/ashar/KaplanMeierVerhaakOriginalClustering.pdf')
-plot(ver.surv.days.fit, col =c("red","blue","green","black"), xlab = "Days")
-title("Kaplan-Meier Curves\n with clusters \n from original Verhaak classification ")
-leg.text <- c("LogRank Test p-value of 0.952")
-legend("topright", leg.text)
-dev.off()
-
-
-load(file = "/home/bit/ashar/ExpressionSets/Verhark/OriginalVerhaakData.RData")
-class(exprs.norm) <- "numeric"
-
-pdf('/home/bit/ashar/MolecularVerhaakOriginalCLustering.pdf')
-pc <- prcomp(exprs.norm)
-pc.pred <- predict(pc,newdata = as.matrix(exprs.norm))
-plot(pc.pred[,1], pc.pred[,2], pch = 19,col = c.true)
-title("PCA plot for Verhaak Data \n from original Verhaak classification \n with Genes as features")
-dev.off()
-
+pdf('/home/bit/ashar/ExpressionSets/VIPdataset/VIP_PCells_clusters.pdf')
+par(mfrow=c(1,2))
+plot(pc.pred[,1], pc.pred[,2], pch = 19,col = c.final, main = "P-Cells", xlab = "PC1", ylab = "PC2")
+plot(surv.days.fit, col = c("black", "red"), main = "Log rank p.val= 0.0164", xlab = " Median PFS black 259d \n Median PFS Red 198d")
+dev.off() 
 
 
 
 
 list.betahat <- list(0)
-
 for ( i in 1:count){
-  list.betahat[[i]] <- (betahat.list[[i]][1:4,] != 0) +0
+  list.betahat[[i]] <- (betahat.list[[i]][1:2,] != 0) +0
 }
 
 betahat1.final <- matrix(NA, nrow = count, ncol = D)
@@ -441,36 +493,30 @@ betahat2.final <- matrix(NA, nrow = count, ncol = D)
 for ( i in 1:count){
   betahat2.final[i,] <- list.betahat[[i]][2,]
 }
-betahat3.final <- matrix(NA, nrow = count, ncol = D)
-for ( i in 1:count){
-  betahat3.final[i,] <- list.betahat[[i]][3,]
-}
-betahat4.final <- matrix(NA, nrow = count, ncol = D)
-for ( i in 1:count){
-  betahat4.final[i,] <- list.betahat[[i]][4,]
-}
-
 ### Final bethats
 final.betahat1 <- apply(betahat1.final,2,mean)
 final.betahat2 <- apply(betahat2.final,2,mean)
-final.betahat3 <- apply(betahat3.final, 2,mean)
-final.betahat4 <- apply(betahat4.final, 2,mean)
 
 
 ### Probability of betahat of genes
-final.betahat <- rbind(final.betahat1, final.betahat2, final.betahat3, final.betahat4)
-rownames(final.betahat) = c("cluster_1","cluster_2","cluster_3","cluster_4")
-yy <- as.list(KEGGPATHID2NAME)
-colnames(final.betahat) <- as.character(unlist(yy[colnames(Y)])) 
+final.betahat <- rbind(final.betahat1, final.betahat2)
+rownames(final.betahat) = c("cluster_red","cluster_black")
+
+index.match <- match(colnames(Y),sig.anno[,1])
+colnames(final.betahat) <- sig.anno[,3][index.match]
 
 
 
+heatmapdata <- as.data.frame(final.betahat)
+pdf("/home/bit/ashar/ExpressionSets/VIPdataset/SurvialRelatedSignature.pdf")
+heatmap.2(t(as.matrix(heatmapdata)),dendrogram="none", col =cm.colors(180), margins=c(6,10), main = "Cluster \n specific \n Biomarkers ", cexCol = 0.85, cexRow = 0.7, trace = "none")
+dev.off()
+
+write.csv(final.betahat, file = 'betahatVIP.csv')
 
 
-
-#### Subset the betahat such that only non zero elements
-
-subset.betahat <- which(apply(final.betahat,2,mean)!=0 )
+####### Generate HeatMasps ################################################3
+subset.betahat <- which(apply(final.betahat,2,mean) != 0 )
 
 ## A new Data frame with only these pathways
 Y.new <- Y[,subset.betahat]
@@ -479,44 +525,57 @@ rownames(Y.new) <- c.final
 
 ind1 <- which(c.final ==1)
 ind2 <- which(c.final == 2)
-ind3 <- which(c.final ==3)
-ind4 <- which(c.final ==4)
+
 
 Y.order <- matrix(0, nrow = N, ncol = ncol(Y.new))
-Y.order <- rbind(Y.new[ind1,],Y.new[ind2,],Y.new[ind3,],Y.new[ind4,])
+Y.order <- rbind(Y.new[ind1,],Y.new[ind2,])
 
 
-pdf("/home/bit/ashar/ExpressionSets/Verhark/PathwayHeatmap.pdf")
-heatmap.2(t(Y.order), dendrogram = "none",col = , Rowv = FALSE, Colv = FALSE, ColSideColors = rownames(Y.order), cexRow =0.6, margins = c(5,12), trace = "none", main = "Pathway expression \n Verhaak data") 
+pdf("/home/bit/ashar/ExpressionSets/VIPdataset/ExpressionHeatmap.pdf")
+heatmap.2(t(Y.order), dendrogram = "none",col = , Rowv = FALSE, Colv = FALSE, ColSideColors = rownames(Y.order), cexRow =0.6, margins = c(5,12), trace = "none", main = "Periphery Cells \n Expression level  with \n survival related genes") 
 dev.off()
 
+######################### CHANGES TO THE PLOT AFTER MEETING OF 8th September #############################################################
+######################## I was asked to redo the survival plots WITHOUT LOGRANK TEST BUT JUST DIFFERENCES IN THE MEDIAN SURVIVAL ##########
+## Let's clear up the memory first#########
+rm(list = ls())
+load("/home/bit/ashar/ExpressionSets/VIPdataset/VIPDP.RData")
+### The pheno.sig has information about the patient pairing
+patient.cases <- as.numeric(levels(as.factor(as.numeric(as.matrix(pheno.sig$Case)))))
 
 
-heatmapdata <- as.data.frame(final.betahat)
-pdf("/home/bit/ashar/ExpressionSets/Verhark/heatmap.pdf")
-heatmap.2(t(as.matrix(heatmapdata)),dendrogram="none", col =cm.colors(90), margins=c(6,10), main = "Marginal Posterior prob. ", cexCol = 0.85, cexRow = 0.7, ylab ="KEGG pathways", trace = "none")
+### Let's create a vector which will store vectors which store indices which I will include in my survival plot
+
+## Inde just has indices for each unique patient 
+inde <- list(0)
+for ( i in 1:length(patient.cases)){
+  inde[[i]] <- which(pheno.sig$Case == patient.cases[i])
+ }
+## check will have indices for the patients that are good
+check <- list(0)
+for ( i in 1:length(inde)){
+  if (length(unique(c.final[inde[[i]]])) == 1)
+    {
+    check[[i]] <- inde[[i]] 
+    }else {
+    check[[i]] <- NA
+  }
+}
+## saving good indices
+d<- unlist(check)
+good.indices <- d[!is.na(d)]
+
+### Subsetting all the necessary objects
+time.subset <- time[good.indices]
+censoring.subset <- censoring[good.indices]
+sub.c.final <- c.final[good.indices]
+
+sub.surv.days <- Surv((30.5*time.subset),censoring.subset)
+sub.surv.days.fit <- survfit(sub.surv.days ~ sub.c.final)
+
+pdf('/home/bit/ashar/ExpressionSets/VIPdataset/VIP_PCells_clusters.pdf')
+par(mfrow=c(1,2))
+plot(pc.pred[,1], pc.pred[,2], pch = 19,col = c.final, main = "P-Cells", xlab = "PC1", ylab = "PC2")
+plot(sub.surv.days.fit, col = c("black", "red"), main = "Kaplan Meier Curves", xlab = " Median PFS black 262d \n Median PFS Red 204d")
 dev.off()
 
-
-#### BAR PLOTS ##############
-pdf("/home/bit/ashar/ExpressionSets/Verhark/Barplot.pdf")
-par(mfrow=c(2,2))
-barplot(final.betahat[1,], main = "Cluster1")
-barplot(final.betahat[2,], main = "Cluster2")
-barplot(final.betahat[3,], main = "Cluster3")
-barplot(final.betahat[4,], main = "Cluster4")
-dev.off()
-
-
-surv.fit <- survfit(surv.ob ~ c.final)
-logrank <- survdiff(surv.ob ~ c.final)
-logrank_verhaak <- survdiff(surv.ob ~ c.true)
-
-
-
-pdf('/home/bit/ashar/Dropbox/WarsawTalk/KaplanMeier.pdf')
-plot(surv.fit, col = c("blue", "green"))
-title("Kaplan-Meier Curves\nfor the Simulation")
-leg.text <- c("LogRank Test p-value of 7.79e-09")
-legend("topright", leg.text)
-dev.off()

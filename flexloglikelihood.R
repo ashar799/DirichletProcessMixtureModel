@@ -1,4 +1,5 @@
-loglikelihood = function(c,Y,mu,S,alpha,That, beta0, betahat, sigma2, lambda2, tau2, K, epsilon, W, beta, ro,D, r, si, Time,N, sig2.dat) {
+
+flexloglikelihood = function(c,Y,mu,S,alpha,That, beta0, betahat, sigma2, lambda2, tau2, K, epsilon, W, beta, ro,D, r, si, Time,N, sig2.dat) {
   
   disclass <- table(factor(c, levels = 1:K))
   activeclass <- which(disclass!=0)
@@ -7,16 +8,17 @@ loglikelihood = function(c,Y,mu,S,alpha,That, beta0, betahat, sigma2, lambda2, t
   Ytemp <- Y
   Ytemp.scaled <- matrix(NA, nrow = N, ncol = D)
   
-  
+  indexrel <- list(0)
   
   for ( i in 1:length(activeclass)) {
     clust <- which(c == activeclass[i])
+    indexrel[[activeclass[i]]] <- which(abs(betahat[activeclass[i],]) > 0.0001)
     
     if (length(clust)==1){
       Ytemp.scaled[clust,1:D] <- matrix(0, nrow =1, ncol =D)
-      } else {
+    } else {
       Ytemp.scaled[clust,1:D] <- scale(Ytemp[clust,1:D], center = TRUE, scale = TRUE)
-      }
+    }
   }
   
   loglikelihood <-c(0)
@@ -28,14 +30,23 @@ loglikelihood = function(c,Y,mu,S,alpha,That, beta0, betahat, sigma2, lambda2, t
     luk1 <- c(0)
     luk2 <- c(0)
     for ( l in 1:length(clust)) {
-    
       
+      relD <- unlist(indexrel[[activeclass[j]]])
+      if (length(relD)!= 0){
+        Yrelev <- Y[clust[l],relD]
+        meanrelev <- mu[activeclass[j],relD]
+        precisionrelev <- S[activeclass[j],relD,relD]
+      } else {
+        Yrelev <- Y[clust[l],1:D]
+        meanrelev <- mu[activeclass[j],1:D]
+        precisionrelev <- S[activeclass[j],1:D,1:D]
+      }
       
       if (Time[clust[l],2]==1){
-        luk1[l] <- log(dMVN(x = as.vector(t(Y[clust[l],1:D])), mean = mu[activeclass[j],1:D],  Q = S[activeclass[j],1:D,1:D]))
+        luk1[l] <- log(dMVN(x = as.vector(t(Yrelev)), mean = meanrelev,  Q = precisionrelev))
         luk2[l] <- log(dnorm(x = That[clust[l]], mean = beta0[activeclass[j]] + betahat[activeclass[j],1:D] %*% as.vector(t(Ytemp.scaled[l,1:D])), sd = sqrt(sigma2[activeclass[j]]) ))
       } else{
-        luk1[l] <- log(dMVN(x = as.vector(t(Y[clust[l],1:D])), mean = mu[activeclass[j],1:D], Q = S[activeclass[j],1:D,1:D]))
+        luk1[l] <- log(dMVN(x = as.vector(t(Yrelev)), mean = meanrelev,  Q = precisionrelev))
         luk2[l] <- log(dtruncnorm(x = That[clust[l]], a = Time[clust[l],1], b = Inf, mean = beta0[activeclass[j]] + betahat[activeclass[j],1:D] %*% as.vector(t(Ytemp.scaled[l,1:D])), sd = sqrt(sigma2[activeclass[j]]) ))
       }
     }
@@ -43,7 +54,7 @@ loglikelihood = function(c,Y,mu,S,alpha,That, beta0, betahat, sigma2, lambda2, t
     
   }
   
-     return(sum(loglikelihood))
+  return(sum(loglikelihood))
   
   
 }

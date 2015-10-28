@@ -1,8 +1,19 @@
-posteriorchineseAFT = function(c,Y,mu,S,alpha,That, beta0, betahat, sigma2, lambda2, tau2, K, epsilon, W, beta, ro,D, r, si, Time,N, sig2.dat) {
-  
+flexposteriorchineseAFT = function(c,Y,mu,S,alpha,That, beta0, betahat, sigma2, lambda2, tau2, K, epsilon, W, beta, ro,D, r, si, Time,N, sig2.dat) {
+
+  ### This function also does a variable selection on the GMM levels
   
   Ytemp <- matrix(NA, nrow = N, ncol = D)
   ctemp <- c
+  
+  
+  ### index which stores relevant variables
+  g <- table(factor(c, levels = 1:K))
+  active <- which(g!=0)
+  indexrel <- list(0)
+  
+  for ( i in 1:length(active)){
+    indexrel[[i]] <- which(abs(betahat[active[i],]) > 0.0001)
+    }
   
   ## This can't be parallelized !!!!!
   for(l in 1:N)  {
@@ -66,9 +77,9 @@ posteriorchineseAFT = function(c,Y,mu,S,alpha,That, beta0, betahat, sigma2, lamb
       mean.tempmatrix <- apply(tempmatrix, 2, mean)
       
       for ( k in 1:D){
-       if (sd.tempmatrix[k] == 0){
-         sd.tempmatrix[k] = 1
-       }
+        if (sd.tempmatrix[k] == 0){
+          sd.tempmatrix[k] = 1
+        }
       }
       
       for ( k in 1:D){
@@ -111,34 +122,42 @@ posteriorchineseAFT = function(c,Y,mu,S,alpha,That, beta0, betahat, sigma2, lamb
     
     ## Calculating the probabalities for drawing the value of c_i from the active classes
     for (j in 1:kminus) {
-      res <- try(dMVN(as.vector(t(Y[l,1:D])), mean = mu[active[j],1:D], Q = S[active[j],1:D,1:D]), silent=TRUE)
-      if (class(res) == "try-error"){
-        posterior[j] <- 0
-      } else{
-        posterior[j] <- g[active[j]] /(N-1+alpha) * dMVN(as.vector(t(Y[l,1:D])), mean = mu[active[j],1:D], Q = S[active[j],1:D,1:D]) *  dnorm(x = That[l], mean = beta0[active[j]] + betahat[active[j],1:D] %*% as.vector(t(Ytemp[l,1:D])), sd = sqrt(sigma2[active[j]]) )
-      }
       
+      relev <- unlist(indexrel[active[j]])
+      if (length(relev)!= 0){
+        Yrelev <- Y[l,relev]
+        meanrelev <- mu[active[j],relev]
+        precisionrelev <- S[active[j],relev,relev]
+      } else {
+        Yrelev <- Y[l,1:D]
+        meanrelev <- mu[active[j],1:D]
+        precisionrelev <- S[active[j],1:D,1:D]
+        }
+      
+      
+      
+      posterior[j] <- g[active[j]] /(N-1+alpha) * dMVN(as.vector(t(Yrelev)), mean = meanrelev, Q = precisionrelev) *  dnorm(x = That[l], mean = beta0[active[j]] + betahat[active[j],1:D] %*% as.vector(t(Ytemp[l,1:D])), sd = sqrt(sigma2[active[j]]) )
     }
     
     res <- try(dMVN(as.vector(t(Y[l,1:D])), mean = mu[active[kminus+1],1:D], Q= S[active[kminus+1],1:D,1:D]), silent=TRUE)
     if (class(res) == "try-error"){
-       posterior[kminus+1] <- 0
+      posterior[kminus+1] <- 0
     } else{
       posterior[kminus+1] <- (0.5 * alpha) /(N-1+alpha) * dMVN(as.vector(t(Y[l,1:D])), mean = mu[active[kminus+1],1:D], Q= S[active[kminus+1],1:D,1:D]) *  dnorm(x = That[l], mean = beta0[active[kminus+1]] + betahat[active[kminus+1],1:D] %*% as.vector(t(Ytemp[l,1:D])), sd = sqrt(sigma2[active[kminus+1]]) )
     }
     
     res2 <- try(dMVN(as.vector(t(Y[l,1:D])), mean = mu[active[kminus+2],1:D], Q= S[active[kminus+2],1:D,1:D]), silent=TRUE)
-    if (class(res2) == "try-error"){
+    if (class(res) == "try-error"){
       posterior[kminus+2] <- 0
     } else{
       posterior[kminus+2] <- (0.5 * alpha) /(N-1+alpha) * dMVN(as.vector(t(Y[l,1:D])), mean = mu[active[kminus+2],1:D], Q = S[active[kminus+2],1:D,1:D]) *  dnorm(x = That[l], mean = beta0[active[kminus+2]] + betahat[active[kminus+2],1:D] %*% as.vector(t(Ytemp[l,1:D])), sd = sqrt(sigma2[active[kminus+2]]) )
     }
     
     
-#     posterior[kminus+1] <- (0.5 * alpha) /(N-1+alpha) * dMVN(as.vector(t(Y[l,1:D])), mean = mu[active[kminus+1],1:D], Q= S[active[kminus+1],1:D,1:D]) *  dnorm(x = That[l], mean = beta0[active[kminus+1]] + betahat[active[kminus+1],1:D] %*% as.vector(t(Ytemp[l,1:D])), sd = sqrt(sigma2[active[kminus+1]]) )
-#     
-#     posterior[kminus+2] <- (0.5 * alpha) /(N-1+alpha) * dMVN(as.vector(t(Y[l,1:D])), mean = mu[active[kminus+2],1:D], Q = S[active[kminus+2],1:D,1:D]) *  dnorm(x = That[l], mean = beta0[active[kminus+2]] + betahat[active[kminus+2],1:D] %*% as.vector(t(Ytemp[l,1:D])), sd = sqrt(sigma2[active[kminus+2]]) )
-#     
+    #     posterior[kminus+1] <- (0.5 * alpha) /(N-1+alpha) * dMVN(as.vector(t(Y[l,1:D])), mean = mu[active[kminus+1],1:D], Q= S[active[kminus+1],1:D,1:D]) *  dnorm(x = That[l], mean = beta0[active[kminus+1]] + betahat[active[kminus+1],1:D] %*% as.vector(t(Ytemp[l,1:D])), sd = sqrt(sigma2[active[kminus+1]]) )
+    #     
+    #     posterior[kminus+2] <- (0.5 * alpha) /(N-1+alpha) * dMVN(as.vector(t(Y[l,1:D])), mean = mu[active[kminus+2],1:D], Q = S[active[kminus+2],1:D,1:D]) *  dnorm(x = That[l], mean = beta0[active[kminus+2]] + betahat[active[kminus+2],1:D] %*% as.vector(t(Ytemp[l,1:D])), sd = sqrt(sigma2[active[kminus+2]]) )
+    #     
     
     ## Calculating the normalization constant for probabilities
     normalization <- sum(posterior) 
