@@ -32,10 +32,10 @@ loglikelihood = function(c,Y,mu,S,alpha,That, beta0, betahat, sigma2, lambda2, t
       
       
       if (Time[clust[l],2]==1){
-        luk1[l] <- log(dMVN(x = as.vector(t(Y[clust[l],1:D])), mean = mu[activeclass[j],1:D],  Q = S[activeclass[j],1:D,1:D]))
-        luk2[l] <- log(dnorm(x = That[clust[l]], mean = beta0[activeclass[j]] + betahat[activeclass[j],1:D] %*% as.vector(t(Ytemp.scaled[l,1:D])), sd = sqrt(sigma2[activeclass[j]]) ))
+        luk1[l] <- dMVN(x = as.vector(t(Y[clust[l],1:D])), mean = mu[activeclass[j],1:D],  Q = S[activeclass[j],1:D,1:D], log =TRUE)
+        luk2[l] <-  dnorm(x = That[clust[l]], mean = beta0[activeclass[j]] + betahat[activeclass[j],1:D] %*% as.vector(t(Ytemp.scaled[l,1:D])), sd = sqrt(sigma2[activeclass[j]]) , log =TRUE)
       } else{
-        luk1[l] <- log(dMVN(x = as.vector(t(Y[clust[l],1:D])), mean = mu[activeclass[j],1:D], Q = S[activeclass[j],1:D,1:D]))
+        luk1[l] <- dMVN(x = as.vector(t(Y[clust[l],1:D])), mean = mu[activeclass[j],1:D], Q = S[activeclass[j],1:D,1:D], log =TRUE)
         luk2[l] <- log(dtruncnorm(x = That[clust[l]], a = Time[clust[l],1], b = Inf, mean = beta0[activeclass[j]] + betahat[activeclass[j],1:D] %*% as.vector(t(Ytemp.scaled[l,1:D])), sd = sqrt(sigma2[activeclass[j]]) ))
       }
     }

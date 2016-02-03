@@ -3,10 +3,12 @@
 
 predictCLASS = function(Y.new, time.new){
   
+  Y.new <- Y.new
+  time.new <- time.new
   N.new <<- nrow(Y.new)
   c.new.list <- list(0)
   ## The number of posterior samples
-  Nps = as.integer(iter/ iter.thin)
+  Nps <<- as.integer(iter/ iter.thin)
   That.new <- time.new 
   
   print("GOING THROUGH MCMC Samples")
@@ -18,14 +20,12 @@ predictCLASS = function(Y.new, time.new){
     ## Assign the parameters to the posterior sample
     ctemp <- c.list[[count]]
     mu <- mu.list[[count]]
-    S <- S
+    S <- S.list[[count]]
     beta0 <- beta0.list[[count]]
     betahat  <- betahat.list[[count]] 
     sigma2  <- sigma2.list[[count]] 
-    lambda2 <- lambda2.list[[count]] 
-    tau2 <- tau2.list[[count]] 
-    Ytemp <- Y
-    Ytemp.scaled <- matrix(NA, nrow = N, ncol = D)
+    
+    
     g <- table(factor(ctemp, levels = 1:K))
     activeclass <- which(g!=0)
     ## The table function helps converting the data point specific indicator variables to class specific indicator variables
@@ -62,56 +62,59 @@ predictCLASS = function(Y.new, time.new){
     
     #######################################################
     ctemp.new = c(0)
-    
-    
     ## This can't be parallelized !!!!!
     for(l in 1:N.new)  {
       
       
       posterior <- matrix(NA, nrow = length(active), ncol = 1)
-      Y.new.sc <- matrix(0, nrow = N.new, ncol =D)
+     
       
-      ## Calculating the probabalities for drawing the value of c_i from the active classes
+      Y.new.scaled.list <- list(0)
+      
       for (j in 1:kminus) {
-        
         clust <- which(ctemp == active[j])
         
         obj.t <- scale(Y[clust,1:D], center = TRUE, scale = TRUE)
         
-        for ( h in 1:D){
-          Y.new.sc[l,h] <- (Y.new[l,h] - attr(obj.t,"scaled:center")[h])/(attr(obj.t,"scaled:scale")[h])
-        }
+        Y.new.scaled.list[[j]] <- scale(Y.new, center = attr(obj.t,"scaled:center"), scale = (attr(obj.t,"scaled:scale")))
+      }
+      for (j in (kminus+1):(kminus+2)) {
+         obj.t <- scale(Y[,1:D], center = TRUE, scale = TRUE)
         
-        posterior[j] <- g[active[j]] /(N-1+alpha) * dMVN(as.vector(t(Y.new[l,1:D])), mean = mu[active[j],1:D], Q = S[active[j],1:D,1:D]) *  dnorm(x = That.new[l], mean = beta0[active[j]] + betahat[active[j],1:D] %*% as.vector(t(Y.new.sc[l,1:D])), sd = sqrt(sigma2[active[j]]) )
+        Y.new.scaled.list[[j]] <- scale(Y.new, center = attr(obj.t,"scaled:center"), scale = (attr(obj.t,"scaled:scale")))
+      }
+      
+      
+      
+      
+      ## Calculating the probabalities for drawing the value of c_i from the active classes
+      for (j in 1:kminus) {
+        posterior[j] <- log(g[active[j]] /(N-1+alpha)) +  dMVN(as.vector(t(Y.new[l,1:D])), mean = mu[active[j],1:D], Q = S[active[j],1:D,1:D]) + dnorm(x = That.new[l], mean = beta0[active[j]] + betahat[active[j],1:D] %*% as.vector(t(Y.new.scaled.list[[j]][l,1:D])), sd = sqrt(sigma2[active[j]]), log =TRUE) 
       }
       
       res <- try(dMVN(as.vector(t(Y[l,1:D])), mean = mu[active[kminus+1],1:D], Q= S[active[kminus+1],1:D,1:D]), silent=TRUE)
       if (class(res) == "try-error"){
         posterior[kminus+1] <- 0
       } else{
-        posterior[kminus+1] <- (0.5 * alpha) /(N-1+alpha) * dMVN(as.vector(t(Y[l,1:D])), mean = mu[active[kminus+1],1:D], Q= S[active[kminus+1],1:D,1:D]) *  dnorm(x = That.new[l], mean = beta0[active[kminus+1]] + betahat[active[kminus+1],1:D] %*% as.vector(t(Ytemp[l,1:D])), sd = sqrt(sigma2[active[kminus+1]]) )
+        posterior[kminus+1] <- log((0.5 * alpha) /(N-1+alpha))  + dMVN(as.vector(t(Y[l,1:D])), mean = mu[active[kminus+1],1:D], Q= S[active[kminus+1],1:D,1:D], log = TRUE) +   dnorm(x = That.new[l], mean = beta0[active[kminus+1]] + betahat[active[kminus+1],1:D] %*% as.vector(t(Y.new.scaled.list[[kminus +1]][l,1:D])), sd = sqrt(sigma2[active[kminus+1]]), log =TRUE )
       }
       
       res2 <- try(dMVN(as.vector(t(Y[l,1:D])), mean = mu[active[kminus+2],1:D], Q= S[active[kminus+2],1:D,1:D]), silent=TRUE)
       if (class(res) == "try-error"){
         posterior[kminus+2] <- 0
       } else{
-        posterior[kminus+2] <- (0.5 * alpha) /(N-1+alpha) * dMVN(as.vector(t(Y[l,1:D])), mean = mu[active[kminus+2],1:D], Q = S[active[kminus+2],1:D,1:D]) *  dnorm(x = That.new[l], mean = beta0[active[kminus+2]] + betahat[active[kminus+2],1:D] %*% as.vector(t(Ytemp[l,1:D])), sd = sqrt(sigma2[active[kminus+2]]) )
+        posterior[kminus+2] <- log((0.5 * alpha) /(N-1+alpha)) +  dMVN(as.vector(t(Y[l,1:D])), mean = mu[active[kminus+2],1:D], Q = S[active[kminus+2],1:D,1:D], log = TRUE) +  dnorm(x = That.new[l], mean = beta0[active[kminus+2]] + betahat[active[kminus+2],1:D] %*% as.vector(t(Y.new.scaled.list[[kminus +2]][l,1:D])), sd = sqrt(sigma2[active[kminus+2]]), log = TRUE )
       }
       
-      
-      #     posterior[kminus+1] <- (0.5 * alpha) /(N-1+alpha) * dMVN(as.vector(t(Y[l,1:D])), mean = mu[active[kminus+1],1:D], Q= S[active[kminus+1],1:D,1:D]) *  dnorm(x = That[l], mean = beta0[active[kminus+1]] + betahat[active[kminus+1],1:D] %*% as.vector(t(Ytemp[l,1:D])), sd = sqrt(sigma2[active[kminus+1]]) )
-      #     
-      #     posterior[kminus+2] <- (0.5 * alpha) /(N-1+alpha) * dMVN(as.vector(t(Y[l,1:D])), mean = mu[active[kminus+2],1:D], Q = S[active[kminus+2],1:D,1:D]) *  dnorm(x = That[l], mean = beta0[active[kminus+2]] + betahat[active[kminus+2],1:D] %*% as.vector(t(Ytemp[l,1:D])), sd = sqrt(sigma2[active[kminus+2]]) )
-      #     
-      
-      ## Calculating the normalization constant for probabilities
-      normalization <- sum(posterior) 
+       ## Calculating the normalization constant for probabilities
+      posterior.exp <- exp(posterior)
+      normalization <- sum(posterior.exp) 
       
       if (normalization < 1e-200 || normalization ==Inf){
         ctemp.new[l] <- sample(active, 1, prob = rep(1,length(active)), replace = TRUE)
       } else {  
-        ctemp.new[l] <- sample(active, 1, prob= posterior, replace = TRUE)
+        ctemp.new[l] <- sample(active, 1, prob= posterior.exp, replace = TRUE)
+         
       }
       
     }

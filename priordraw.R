@@ -12,7 +12,7 @@ priordraw = function(beta, W, epsilon, ro, r, si,N,D, sig2.dat) {
   
   res <- try(rWISHART(1, beta, solve((beta*W))), silent=TRUE)
   if (class(res) == "try-error"){
-    St <- solve(W)
+    St <- solve(diag(diag(cov(Y))))
   } else{
     St <- rWISHART(1, beta, solve((beta*W)))
   }
@@ -35,10 +35,10 @@ priordraw = function(beta, W, epsilon, ro, r, si,N,D, sig2.dat) {
   } 
   ## Approximating the Jeffery's prior by a Gamma distribution 
  
-  sigma2t <- rinvgamma(1, shape = 1, scale = 1)
+  sigma2t <- mean(rinvgamma(100, shape = 1, scale = 1))
   
   
-  beta0t <- rnorm(1, 0, sd = sig2.dat)
+  beta0t <- mean(rnorm(100, 0, sd = sig2.dat))
   ## 
   scaleof <- 0
   

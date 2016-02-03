@@ -12,6 +12,9 @@ lambda2.list <- list(0)
 tau2.list <- list(0)
 c.list <- list(0)
 That.list <- list(0)
+likli.gibbs <- c(0)
+
+
 
 print("GIBB'S SAMPLING")
 pb <- txtProgressBar(min = 1, max = iter , style = 3)
@@ -84,11 +87,12 @@ for (o in 1:iter) {
     c.list[[count]] <- c
     That.list[[count]] <- That
     time.predicted <- predicttime(c,Y, That,Time,beta0, betahat, sigma2)$predicttime
-    nmrse[count] <- calcrmse(time.real,time.predicted)$rmse
+#     nmrse[count] <- calcrmse(time.real,time.predicted)$rmse
     count <- count +1
   }
   
-  
+likli.gibbs[o] <- loglikelihood(c,Y,mu,S,alpha,That, beta0, betahat, sigma2, lambda2, tau2, K, epsilon, W, beta, ro,D, r, si, Time,N, sig2.dat)
+
   
   
   #   print(o/iter) 

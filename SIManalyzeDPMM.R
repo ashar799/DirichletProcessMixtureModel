@@ -30,7 +30,7 @@ require(Hmisc)
 
 for (h in 1:Nps){
 ### Adjusted Rand Indices
-final.rand[h] <- adjustedRandIndex(c.list[[h]],as.factor(c))
+final.rand[h] <- adjustedRandIndex(c.list[[h]],as.factor(c.true))
 
 ### See C-Index (concordance index)
 surv.aft <- Surv(time,censoring)
@@ -42,39 +42,32 @@ library(Hmisc)
 cindex.final[h] <-  survConcordance(surv.aft ~ exp(-tem.tim))[[1]]
 
 ### Brier Scores
-for ( v in 1:F){
-  ind <- which((c.list[[h]] == v))
-  time.tmp <- time[ind]
-  censoring.tmp <- censoring[ind]
-  Y.tmp <- Y[ind,]
-  rownames(Y.tmp) <- as.character(c(1:nrow(Y.tmp)))
-  smod <-  Surv(exp(time.tmp), censoring.tmp)
-  L = length(ind)
-  linear.pred <- tem.tim[ind]
-  sigma.pred <- log(sqrt(sigma2.list[[h]][v]))
-  ### The survival function in AFT model
-  S1 <- function (times = NULL, lp = NULL, parms = sigma.pred) 
-  {
-    t.trans <- logb(times)
-    names(t.trans) <- format(times)
-    1 - pnorm((t.trans - lp)/exp(parms))
-  }
-  mat.tmp <- matrix(NA, nrow = L, ncol = L)
-  for (j in 1:L){
-    mat.tmp[,j] <- S1(exp(time.tmp[j]),lp =tem.tim[ind])
-  }
-  brier.final[h,v] <- sbrier(smod,mat.tmp, exp(time.tmp))[1] 
-  
-}
+# for ( v in 1:F){
+#   ind <- which((c.list[[h]] == v))
+#   time.tmp <- time[ind]
+#   censoring.tmp <- censoring[ind]
+#   Y.tmp <- Y[ind,]
+#   rownames(Y.tmp) <- as.character(c(1:nrow(Y.tmp)))
+#   smod <-  Surv(exp(time.tmp), censoring.tmp)
+#   L = length(ind)
+#   linear.pred <- tem.tim[ind]
+#   sigma.pred <- log(sqrt(sigma2.list[[h]][v]))
+#   ### The survival function in AFT model
+#   S1 <- function (times = NULL, lp = NULL, parms = sigma.pred) 
+#   {
+#     t.trans <- logb(times)
+#     names(t.trans) <- format(times)
+#     1 - pnorm((t.trans - lp)/exp(parms))
+#   }
+#   mat.tmp <- matrix(NA, nrow = L, ncol = L)
+#   for (j in 1:L){
+#     mat.tmp[,j] <- S1(exp(time.tmp[j]),lp =tem.tim[ind])
+#   }
+#   brier.final[h,v] <- sbrier(smod,mat.tmp, exp(time.tmp))[1] 
+#   
+# }
 
 }
-
-
-
-
-
-
-
 ###############################################
 ###### Calculating POINT ESTIMATES ############
 ###############################################
@@ -87,17 +80,20 @@ for ( i in 1:count){
 }
 c.final <- apply(c.matrix,1,median)
 
+active <- as.numeric(rownames(table(c.final)))
+
+
 ############ Time Covariate Slopes FOR Relevant Clusters ############
 list.betahat <- list(0)
 
 for ( i in 1:count){
-  list.betahat[[i]] <- (betahat.list[[i]][1:F,] != 0) +0
+  list.betahat[[i]] <- (betahat.list[[i]][active,] != 0) +0
 }
 
+Q <- length(active)
+matrix.betahat <- array(data = NA, dim =c(Q,count,D))
 
-matrix.betahat <- array(data = NA, dim =c(F,count,D))
-
-for ( z in 1:F){
+for ( z in 1:Q){
   for ( x  in 1:count){
     matrix.betahat[z,x,] <- list.betahat[[x]][z,]
     }
@@ -105,7 +101,7 @@ for ( z in 1:F){
 
 final.betahat <- apply(matrix.betahat,c(1,3),mean)
 ### Probability of betahat of genes FOR ONE SIMULATION
-colnames(final.betahat) =  c(rep("relevant",rel.D),rep("irrelevant",irrel.D))
+##colnames(final.betahat) =  c(rep("relevant",rel.D),rep("irrelevant",irrel.D))
 heatmapdata <- as.data.frame(final.betahat)
 heatmap.2(t(as.matrix(heatmapdata)),dendrogram="none", col =cm.colors(180), margins=c(6,10), main = "Posterior prob. \n for Selection \n in 1 Simulation ", cexCol = 0.85, cexRow = 0.7, Rowv = FALSE)
 

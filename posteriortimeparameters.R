@@ -31,8 +31,8 @@ posteriortimeparameters = function(c, That, lambda2,tau2,sigma2,beta0, betahat, 
     if (length(clust) > 1){
     Ttemp <- as.vector(That[clust])
     ntemp <- length(clust)
-    reg.blas <- blasso(Ytemp, Ttemp, T =300,thin = 10, RJ = TRUE, beta = as.vector(betahat[activeclass[j],]),lambda2 = lambda2[activeclass[j]],s2 = sigma2[activeclass[j]], mprior = 0.20 ,rd =c(r,si), ab = c(1,1),normalize = TRUE, verb = 0)
-    sum <- summary(reg.blas, burnin= 100)
+    reg.blas <- blasso(Ytemp, Ttemp, T =1000,thin = 10, RJ = TRUE, beta = as.vector(betahat[activeclass[j],]),lambda2 = lambda2[activeclass[j]],s2 = sigma2[activeclass[j]] ,rd =c(r,si), ab = c(1,1),normalize = TRUE, verb = 0)
+    sum <- summary(reg.blas, burnin= 500)
     
     ## Selecting those features which are relevant
     coeff <- unlist(lapply(strsplit(sum$coef[3,], split = ":"), function(x) as.numeric(unlist(x)[2])))

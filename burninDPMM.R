@@ -1,7 +1,7 @@
 ## Gibb's sampling 
 burninDPMM = function(){
   
-source('flexposteriorchineseAFT.R')
+source('posteriorchineseAFT.R')
 source('posteriorGMMparametrs.R')
 source('posteriortimeparameters.R')
 source('updatetime.R')
@@ -98,17 +98,21 @@ for (o in o.iter:iter.burnin) {
   
   ##################### Print SOME Statistics #####################################################
   randy[o] <- adjustedRandIndex(c.true,as.factor(c))
-#   print(randy[o])
-  rmse[o] <- calcrmse(time.real,That)$rmse
-#   print(rmse[o])
+  print(randy[o])
   likli[o] <- loglikelihood(c,Y,mu,S,alpha,That, beta0, betahat, sigma2, lambda2, tau2, K, epsilon, W, beta, ro,D, r, si, Time,N, sig2.dat)
-#   print(likli[o])
-#   print(o/iter.burnin)
+  print(likli[o])
+  print(o/iter.burnin)
   
   
   ##### Print the status bar
   Sys.sleep(0.1)
-  setTxtProgressBar(pb, o)
+  #setTxtProgressBar(pb, o)
+
+
+ ####### If At all the W get's NA
+  if (sum(is.na(diag(W))+ 0) > 0){
+    W <- diag(diag(cov(Y)))
+    }
 } 
 
 assign("alpha", alpha, envir = .GlobalEnv)
@@ -128,7 +132,7 @@ assign("randy.burnin", randy, envir = .GlobalEnv)
 assign("rmse.burnin", rmse, envir = .GlobalEnv)
 assign("likli.burnin", likli, envir = .GlobalEnv)
 
-
+plot(likli, main = 'Burnin Iterations')
 
 
 

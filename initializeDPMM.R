@@ -5,7 +5,7 @@ initializeDPMM = function(){
 
 Time <- cbind(time, censoring) 
 
-K <<- as.integer(N/2)
+K <<-  as.integer(N/5)
 
 ## HYPER PRIORS
 ## Hyper parameters of the DP
@@ -71,8 +71,8 @@ ti <- updatetime(c, Y, Time,That, beta0, betahat, sigma2)
 That <- ti$time
 
 ## Check What is the RMSE
-source('calcrmse.R')
-er_random <<- calcrmse(time.real,That)$rmse
+# source('calcrmse.R')
+# er_random <<- calcrmse(time.real,That)$rmse
 
 
 ## Initialization part for the parmaters of AFT Model with k-means and Bayesian Lasso
@@ -99,12 +99,12 @@ source('predicttime.R')
 time.predicted <- predicttime(c,Y, That,Time,beta0, betahat, sigma2)$predicttime
 
 ## Check RMSE
-source('calcrmse.R')
-er_kmeansblasso <<- calcrmse(time.real,time.predicted)$rmse
+#source('calcrmse.R')
+#er_kmeansblasso <<- calcrmse(time.real,time.predicted)$rmse
 
 
 ##See How close is the predicted time with the real time
-wilcox.test(as.vector(time.predicted), as.vector(time.real), paired = TRUE)
+#wilcox.test(as.vector(time.predicted), as.vector(time.real), paired = TRUE)
 
 
 ## Adjusted Initial Rand INDEX measure

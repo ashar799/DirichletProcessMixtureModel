@@ -3,7 +3,7 @@ posteriorhyperPLUS = function(c, Y, mu, S, epsilon, W, beta, ro ) {
   numclust <- table(factor(c, levels = 1:K))
   activeclust <- which(numclust!=0)
   nactive <- length(activeclust)
-  InvCov <- solve(cov(Y))
+  InvCov <- solve(cov(Y) + diag(D))
   meandata <- apply(Y, 2, mean )
   meandata <-  as.matrix(meandata)
  
