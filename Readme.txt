@@ -1,4 +1,4 @@
-This project implements a Dirichlet Process Gaussian Mixture Model. 
+This project implements a Dirichlet Process Mixture Model. 
 All the code has been written in R.
-The file GESimulationFinal.R contains the Gibb's Sampler which implements a simulation example.
+The file Simulatioin_MAIN.R contains the code for simulating the data and running the model.
 
