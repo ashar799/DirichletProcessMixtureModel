@@ -274,11 +274,11 @@ for ( i in 1:F){
 
 time.noise.list <- list(0)
 for ( i in 1:F){
-  time.noise.list[[i]] <- rnorm(length(which(c.true == i)), mean = 25*i, sd = i )
+  time.noise.list[[i]] <- rnorm(length(which(c.true == i)), mean = 20*i, sd = 0.1 )
 }
 time.noise.list.test <- list(0)
 for ( i in 1:F){
-  time.noise.list.test[[i]] <- rnorm(length(which(c.true.new == i)), mean = 25*i, sd = i )
+  time.noise.list.test[[i]] <- rnorm(length(which(c.true.new == i)), mean = 20*i, sd = 0.1 )
 }
 
 

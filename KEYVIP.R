@@ -471,11 +471,6 @@ surv.days.fit <- survfit(surv.days ~ c.final)
 surv.days.logrank <- survdiff(surv.days ~ c.final)
 
 
-pdf('/home/bit/ashar/ExpressionSets/VIPdataset/VIP_PCells_clusters.pdf')
-par(mfrow=c(1,2))
-plot(pc.pred[,1], pc.pred[,2], pch = 19,col = c.final, main = "P-Cells", xlab = "PC1", ylab = "PC2")
-plot(surv.days.fit, col = c("black", "red"), main = "Log rank p.val= 0.0164", xlab = " Median PFS black 259d \n Median PFS Red 198d")
-dev.off() 
 
 
 

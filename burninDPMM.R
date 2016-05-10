@@ -53,17 +53,17 @@ for (o in o.iter:iter.burnin) {
   W <- matrix(as.matrix(tmpW),nrow = D, ncol =D)
   ro <- hypercognate$ro
   
-  source('posteriorbeta.R')
-  if( o%%10 == 0){
-    res <- try(posteriorbeta(c, beta, D, S, W))
-    if (class(res) == "try-error"){
-      beta = beta
-    } else{
-      beta <- posteriorbeta(c, beta, D, S, W)
-      
-    }
-  } 
-  
+#   source('posteriorbeta.R')
+#   if( o%%10 == 0){
+#     res <- try(posteriorbeta(c, beta, D, S, W))
+#     if (class(res) == "try-error"){
+#       beta = beta
+#     } else{
+#       beta <- posteriorbeta(c, beta, D, S, W)
+#       
+#     }
+#   } 
+#   
   ################# INDICATOR VARIABLE ##################################################################
   ## Updating the indicator variables and the parameters
   source('posteriorchineseAFT.R')
@@ -88,7 +88,7 @@ for (o in o.iter:iter.burnin) {
   
   
   
-  ######################## The Censored Times ###########################################################
+  ####################### The Censored Times ###########################################################
   source('updatetime.R')
   # Updating the Time Variable
   ti <- NA
@@ -97,8 +97,8 @@ for (o in o.iter:iter.burnin) {
   
   
   ##################### Print SOME Statistics #####################################################
-  randy[o] <- adjustedRandIndex(c.true,as.factor(c))
-  print(randy[o])
+  #randy[o] <- adjustedRandIndex(c.true,as.factor(c))
+  #print(randy[o])
   likli[o] <- loglikelihood(c,Y,mu,S,alpha,That, beta0, betahat, sigma2, lambda2, tau2, K, epsilon, W, beta, ro,D, r, si, Time,N, sig2.dat)
   print(likli[o])
   print(o/iter.burnin)

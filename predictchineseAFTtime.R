@@ -2,20 +2,23 @@
 #### The fundamental assumption is that EACH NEW TEST POINT IS CONDITIONALLY INDEPENDENT on the OTHER POINTS
 #### We predict value of one point at a time
 ### The final output is Time for the new samples, ONE AT A TIME
+#### when making a final comparison it's a good idea to weigh the points according to the model likelihood
 
-
-predictchineseAFTtime = function(Y.new){
+predictchineseAFTtime = function(Y.input){
   
   
-  Y.new  <- Y.new
+  Y.new  <- Y.input
+  N.new <- nrow(Y.new)
   c.new.list <- list(0)
   ## The number of posterior samples
-  That.new <- time.new 
+  #That.new <- time.new 
   post.time  = matrix(NA,nrow = nrow(Y.new), ncol = Nps)
   print("GOING THROUGH MCMC Samples")
   pb <- txtProgressBar(min = 1, max = Nps , style = 3)
   
   cind <- c(0)
+  
+  modelweights <- c(0)
   
   for (count in 1:Nps){
     
@@ -66,11 +69,18 @@ predictchineseAFTtime = function(Y.new){
     Y.new.scaled.list <- list(0)
     for (j in 1:kminus) {
      clust <- which(ctemp == active[j])
-  
+     
+     if(length(clust) > 1){
      obj.t <- scale(Y[clust,1:D], center = TRUE, scale = TRUE)
-  
      Y.new.scaled.list[[j]] <- scale(Y.new, center = attr(obj.t,"scaled:center"), scale = (attr(obj.t,"scaled:scale")))
+     } else {
+       obj.t <- scale(Y[,1:D], center = TRUE, scale = TRUE)
+      Y.new.scaled.list[[j]] <- scale(Y.new, center = attr(obj.t,"scaled:center"), scale = (attr(obj.t,"scaled:scale")))
+       
      }
+  
+    
+    }
     
     for (j in (kminus+1):(kminus+2)) {
      obj.t <- scale(Y[,1:D], center = TRUE, scale = TRUE)
@@ -83,7 +93,8 @@ predictchineseAFTtime = function(Y.new){
   posteriortime <- matrix(0, nrow = length(active), ncol = N.new)
   posteriortimeweight <- matrix(0, nrow = length(active), ncol = N.new)
   weights <- matrix(0, nrow = length(active), ncol = N.new)
-
+ 
+  
 
     ## This can't be parallelized !!!!!
     for(l in 1:N.new)  {
@@ -127,24 +138,28 @@ predictchineseAFTtime = function(Y.new){
      
    } 
     
-
+ modelweights[count] <- sum(exp((1/N.new) *apply(posteriortimeweight,1,sum)))
     
-   cind[count] <- as.numeric(survConcordance(Surv(time.new,censoring.new) ~ exp(-post.time[,count]))[1]) 
+#    cind[count] <- as.numeric(survConcordance(Surv(exp(time.new),censoring.new) ~ exp(-post.time[,count]))[1]) 
+# 
+#    print(cind[count])
 
-   print(cind[count])
+## Calculting the Model Weight
 
-
-
-    ## Sys.sleep(0.1)
-    ##setTxtProgressBar(pb, count)
+    Sys.sleep(0.1)
+    setTxtProgressBar(pb, count)
     
     
   }
   
   #### To calculate average values over MCMC samples
-  
-  post.time.avg <<- apply(post.time[,1:Nps],1,mean)
-  
+  modelweight.norm <- modelweights/(sum(modelweights))
+
+ post.time.corrected <- post.time 
+ for ( i in 1:Nps){
+ post.time.corrected[,i] <- post.time[,i] *modelweight.norm[i] 
+ }
+post.time.avg <<- apply(post.time.corrected[,1:Nps],1,sum)
  
   
 }

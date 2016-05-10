@@ -3,7 +3,7 @@ posteriorhyper = function(c, Y, mu, S, epsilon, W, beta, ro ) {
   numclust <- table(factor(c, levels = 1:K))
   activeclust <- which(numclust!=0)
   nactive <- length(activeclust)
-  InvCov <- solve(cov(Y))
+  InvCov <- solve(cov(Y) + diag(1,D))
   meandata <- apply(Y, 2, mean )
   meandata <-  as.matrix(meandata)
 #   This was to be used incase the lo likelihood was needed

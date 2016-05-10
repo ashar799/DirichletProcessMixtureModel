@@ -20,7 +20,7 @@ p.dist = c(0.5,0.5)
 D = 20
 
 ## Total Percentage of irrelevant feature
-prob.noise.feature = 0.1
+prob.noise.feature = 0.2
 
 
 ## Overlap between Cluster of molecular Data of the relevant features
@@ -52,7 +52,7 @@ Y <- Y.dat
 Y.new <- Y.new.dat
 
 ############################# PARAMETERS for GIBB's SAMPLING ####
-iter = 50
+iter = 100
 iter.burnin = 50
 iter.thin  = 5
 k = 2
@@ -67,17 +67,16 @@ initializeDPMM()
 source('SIMgroundtruth.R')
 SIMgroundtruth()
 
+source('iSIMgroundtruth.R')
+iSIMgroundtruth()
 
 ########### Train the Model #########################################
 source('burninDPMM.R')
 burninDPMM()
 
-
 source('gibbsDPMM.R')
 gibbsDPMM()
   
-
-
 ########## Analyze the fit ##########################################
 ### Good feature selection from heatmap plus cindex plus randindex
 source('SIManalyzeDPMM.R')
@@ -91,10 +90,26 @@ predictCLASS(Y.new, time.new)
 print(posteriorprob)
 test.randindex <- adjustedRandIndex(apply(posteriorprob,1,which.max),c.true.new)
 
+######## Predict on New Data Set  BASED ON JUST THE MOLECULAR DATA #####################################
+source('predictCLUSTER.R')
+predictCLUSTER(Y.new)
+## Check the predicted Rand Index 
+print(posteriorprobMOL)
+i.test.randindex <- adjustedRandIndex(apply(posteriorprobMOL,1,which.max),c.true.new)
+
+
 source('predictchineseAFTtime.R')
 predictchineseAFTtime(Y.new)
 ### Check of the Predicted C-index 
-predicted.cindex <- survConcordance(Surv(time.new,censoring.new) ~ exp(-post.time.avg))[1]
+predicted.cindex <- survConcordance(Surv(exp(time.new),censoring.new) ~ exp(-post.time.avg))[1]
 
+########### Check Prediction Ground Truth
+source('predictionGroundTruth.R')
+predictionGroundTruth()
+
+######### Use PreMiuM ##############3
+source('premium.R')
+direc <- as.character('/home/bit/ashar/ownCloud/Research/DPMMSIMULATIONS/OneView/D20Noise20perOverlap01per/premium')
+premium(direc)
 
 

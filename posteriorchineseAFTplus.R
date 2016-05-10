@@ -1,4 +1,4 @@
-######### This is almost the same as posterchineseAFT except that the likelihood of the AFT model has been raised to a power of D
+######### This is almost the same as posterchineseAFT except that the likelihood of the AFT model DOESNOT contain Time
 
 posteriorchineseAFTplus = function(c,Y,mu,S,alpha,That, beta0, betahat, sigma2, lambda2, tau2, K, epsilon, W, beta, ro,D, r, si, Time,N, sig2.dat) {
   
@@ -117,7 +117,7 @@ posteriorchineseAFTplus = function(c,Y,mu,S,alpha,That, beta0, betahat, sigma2, 
       if (class(res) == "try-error"){
         posterior[j] <- 0
       } else{
-        posterior[j] <- log(g[active[j]] /(N-1+alpha)) +  dMVN(as.vector(t(Y[l,1:D])), mean = mu[active[j],1:D], Q = S[active[j],1:D,1:D], log =TRUE) + D* dnorm(x = That[l], mean = beta0[active[j]] + betahat[active[j],1:D] %*% as.vector(t(Ytemp[l,1:D])), sd = sqrt(sigma2[active[j]]), log =TRUE )
+        posterior[j] <- log(g[active[j]] /(N-1+alpha)) +  dMVN(as.vector(t(Y[l,1:D])), mean = mu[active[j],1:D], Q = S[active[j],1:D,1:D], log =TRUE)
       }
       
     }
@@ -126,14 +126,14 @@ posteriorchineseAFTplus = function(c,Y,mu,S,alpha,That, beta0, betahat, sigma2, 
     if (class(res) == "try-error"){
       posterior[kminus+1] <- 0
     } else{
-      posterior[kminus+1] <- log((0.5 * alpha) /(N-1+alpha)) + dMVN(as.vector(t(Y[l,1:D])), mean = mu[active[kminus+1],1:D], Q= S[active[kminus+1],1:D,1:D], log = TRUE)  + D* dnorm(x = That[l], mean = beta0[active[kminus+1]] + betahat[active[kminus+1],1:D] %*% as.vector(t(Ytemp[l,1:D])), sd = sqrt(sigma2[active[kminus+1]]), log =TRUE )
+      posterior[kminus+1] <- log((0.5 * alpha) /(N-1+alpha)) + dMVN(as.vector(t(Y[l,1:D])), mean = mu[active[kminus+1],1:D], Q= S[active[kminus+1],1:D,1:D], log = TRUE)  
     }
     
     res2 <- try(dMVN(as.vector(t(Y[l,1:D])), mean = mu[active[kminus+2],1:D], Q= S[active[kminus+2],1:D,1:D]), silent=TRUE)
     if (class(res2) == "try-error"){
       posterior[kminus+2] <- 0
     } else{
-      posterior[kminus+2] <- log((0.5 * alpha) /(N-1+alpha)) +  dMVN(as.vector(t(Y[l,1:D])), mean = mu[active[kminus+2],1:D], Q = S[active[kminus+2],1:D,1:D], log =TRUE) + D* dnorm(x = That[l], mean = beta0[active[kminus+2]] + betahat[active[kminus+2],1:D] %*% as.vector(t(Ytemp[l,1:D])), sd = sqrt(sigma2[active[kminus+2]]), log =TRUE)
+      posterior[kminus+2] <- log((0.5 * alpha) /(N-1+alpha)) +  dMVN(as.vector(t(Y[l,1:D])), mean = mu[active[kminus+2],1:D], Q = S[active[kminus+2],1:D,1:D], log =TRUE) 
     }
     
     

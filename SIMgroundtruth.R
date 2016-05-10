@@ -94,11 +94,11 @@ gr.km.rand <- adjustedRandIndex(c.true,as.factor(gr.km$cluster))
 
 
 
-brier.km.pcox <- c(0)
-cindex.km.pcox <-0
-brier.km.paft <- c(0)
-cindex.km.paft <- 0
-cindex.true.pcox <- c(0)
+# brier.km.pcox <- c(0)
+# cindex.km.pcox <-0
+# brier.km.paft <- c(0)
+# cindex.km.paft <- 0
+# cindex.true.pcox <- c(0)
 
 
 
@@ -128,7 +128,7 @@ cindex.true.pcox <- c(0)
 
 
 ######## Penalized Cox PH ###########################################
-linear.pred <- c(0)
+linear.cox <- c(0)
 for ( q in 1:F){
 ind <- which((gr.km$cluster) == q)
 time.tmp <- time[ind]
@@ -145,10 +145,10 @@ coxreg$status <- censoring.tmp
 # cindex.km.pcox[q]  <-  survConcordance(Surv(coxreg$time,coxreg$status) ~ predict(f.reg))[1]
 ### see if we can use glmnet
 reg.pcox <- cv.glmnet(x = Y.tmp, y = Surv(coxreg$time, coxreg$status), family = "cox")
-linear.pred[ind] <- predict(object =reg.pcox, newx = Y.tmp, s= "lambda.min")
+linear.cox[ind] <- predict(object =reg.pcox, newx = Y.tmp, s= "lambda.min")
 }
 
-cindex.km.pcox <- survConcordance(smod ~ linear.pred)[1]
+cindex.km.pcox <- survConcordance(smod ~ linear.cox)[1]
 
 
 # ####### Penalized AFT with true clustering ############
@@ -235,25 +235,23 @@ cindex.km.paft.final <<- as.numeric(cindex.km.paft)
 
 #################################################################################
 ##############################################################################
-############### FlexMix #######################################################
+############### Penalized FlexMix #######################################################
 ################################################################################
 
-gr.flx <- flexmix(time ~ Y, k =F)
-gr.flx.rand <- adjustedRandIndex(c.true,clusters(gr.flx))
+data <- data.frame(time, Y)
+
+## The cross validation folds for choosing lambda
+fo <- sample(rep(seq(10), length = nrow(data)))
+gr.flx <- flexmix(time ~ ., data = data, k = F, cluster = gr.km$cluster, model = FLXMRglmnet(foldid = fo, adaptive= FALSE), control = list(iter.max = 500))
+linear.flxmix.recovery <- unlist(predict(gr.flx, newdata = data, aggregate = TRUE))
+cindex.flx <- as.numeric(survConcordance(smod ~ exp(-linear.flxmix.recovery))[1])
+rand.flx <-  adjustedRandIndex(c.true,as.factor(clusters(gr.flx)))
+
+gr.flx.rand.final <<- rand.flx
+cindex.flx.final <<- as.numeric(cindex.flx)
 
 
 
-########## CoxPH #############################
-fit.cox.flx <- coxph(smod ~ Y[,1:D]*strata(as.factor(clusters(gr.flx))), data = as.data.frame(Y))
-## C-Index
-cindex.flx.cox <- survConcordance(smod ~ predict(fit.cox.flx))[1]
-## Brier Score
-fit.coxph <- survfit(fit.cox.flx, newdata = as.data.frame(Y[,1:D]))
-#brier.flx.cox <- sbrier(Surv(fit.coxph$time,fit.coxph$n.event), fit.coxph$surv)[[1]]
-
-
-gr.flx.rand.final <<- gr.flx.rand
-cindex.flx.cox.final <<- as.numeric(cindex.flx.cox)
 #brier.flx.cox.final <<-  brier.flx.cox
 
 #cindex.cox <<- as.numeric(cindex.cox)

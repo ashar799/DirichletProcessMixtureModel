@@ -30,10 +30,10 @@ require(Hmisc)
 
 for (h in 1:Nps){
 ### Adjusted Rand Indices
-final.rand[h] <- adjustedRandIndex(c.list[[h]],as.factor(c.true))
+# final.rand[h] <- adjustedRandIndex(c.list[[h]],as.factor(c.true))
 
 ### See C-Index (concordance index)
-surv.aft <- Surv(time,censoring)
+surv.aft <- Surv(exp(time),censoring)
 library(Hmisc)
 ### Predict Time from the model
 source('predictlinear.R')
@@ -73,18 +73,25 @@ cindex.final[h] <-  survConcordance(surv.aft ~ exp(-tem.tim))[[1]]
 ###############################################
 
 
+
+
+
 ##### Class Assignments ########################
 c.matrix <- matrix(NA, nrow = N, ncol = count)
 for ( i in 1:count){
   c.matrix[,i] <- c.list[[i]]
 }
-c.final <- apply(c.matrix,1,median)
+
+
+c.final <- c.matrix[,count/2]
 
 active <- as.numeric(rownames(table(c.final)))
 
-
+active <- active[(active %%1 ==0)]
 ############ Time Covariate Slopes FOR Relevant Clusters ############
 list.betahat <- list(0)
+
+count = Nps
 
 for ( i in 1:count){
   list.betahat[[i]] <- (betahat.list[[i]][active,] != 0) +0
@@ -103,7 +110,10 @@ final.betahat <- apply(matrix.betahat,c(1,3),mean)
 ### Probability of betahat of genes FOR ONE SIMULATION
 ##colnames(final.betahat) =  c(rep("relevant",rel.D),rep("irrelevant",irrel.D))
 heatmapdata <- as.data.frame(final.betahat)
-heatmap.2(t(as.matrix(heatmapdata)),dendrogram="none", col =cm.colors(180), margins=c(6,10), main = "Posterior prob. \n for Selection \n in 1 Simulation ", cexCol = 0.85, cexRow = 0.7, Rowv = FALSE)
+pdf("HeatmapFS.pdf")
+heatmap.2(t(as.matrix(heatmapdata)),dendrogram="none", col =hmcols, margins=c(6,10), main = "Posterior prob. \n for Selection \n ", cexCol = 0.85, cexRow = 0.7, Rowv = FALSE)
+dev.off()
+
 
 final.rand <<- final.rand
 cindex.final <<- cindex.final

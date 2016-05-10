@@ -108,7 +108,7 @@ time.predicted <- predicttime(c,Y, That,Time,beta0, betahat, sigma2)$predicttime
 
 
 ## Adjusted Initial Rand INDEX measure
-randindexi <<- adjustedRandIndex(c.true,as.factor(c))
+#randindexi <<- adjustedRandIndex(c.true,as.factor(c))
 
 
 
